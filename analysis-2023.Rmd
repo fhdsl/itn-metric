@@ -30,3 +30,14 @@ stats_list$dimensions
 stats_list$link_clicks
 ```
 
+
+GitHub
+```{r}
+authorize("github")
+
+all_repos_metrics <- get_repos_metrics(owner = "fhdsl")
+rownames(all_repos_metrics) <- NULL
+
+View(all_repos_metrics)
+```
+
