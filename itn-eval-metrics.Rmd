@@ -7,6 +7,7 @@ output:
     code_folding: hide
     toc: true
     toc_depth: 2
+    toc_float: true
   word_document: default
 ---
 
@@ -20,31 +21,50 @@ knitr::opts_chunk$set(echo = TRUE)
 dir.create("data", showWarnings = FALSE)
 dir.create("plots", showWarnings = FALSE)
 set.seed(1234)
-```
 
-```{r}
 devtools::load_all("../metricminer/")
 # authorize("google")
+# authorize("calendly")
 
-accounts <- get_ga_user()
+ga_accounts <- get_ga_user()
+calendly_account <- get_calendly_user()
 ```
 
 ## Collect online course data
 
 ```{r}
-if (!file.exists(file.path("data", "itcr_ga_data.RDS"))) {
-  fhdsl_stats_list <- all_ga_metrics(account_id = accounts$id[2])
-  itcr_stats_list <- all_ga_metrics(account_id = accounts$id[5])
+if (!file.exists(file.path("data", "itcr_ga_metric_data.RDS"))) {
+  fhdsl_stats_list <- get_all_ga_metrics(account_id = ga_accounts$id[1])
+  itcr_stats_list <- get_all_ga_metrics(account_id = ga_accounts$id[2])
+  
+  # There's some google analytics that aren't ITCR courses
+  not_itcr <- c("hutchdatasci", "whoiswho", "MMDS", "FH Cluster 101", "AnVIL_Researcher_Journey")
 
-  all_data <- dplyr::bind_rows(fhdsl_stats_list$metrics ,itcr_stats_list$metrics)
-
-  saveRDS(all_data, file.path("data","itcr_ga_data.RDS"))
+  # Set up each data frame 
+  ga_metrics <- dplyr::bind_rows(fhdsl_stats_list$metrics ,itcr_stats_list$metrics) %>%
+  dplyr::filter(
+    !(website %in%not_itcr)
+    )
+  saveRDS(ga_metrics, file.path("data","itcr_ga_metric_data.RDS"))
+  
+  ga_dims <- dplyr::bind_rows(fhdsl_stats_list$dimensions, itcr_stats_list$dimensions) %>%
+  dplyr::filter(
+    !(website %in% not_itcr)
+    )
+  saveRDS(ga_dims, file.path("data","itcr_ga_dims_data.RDS"))
+  
+  ga_link_clicks <- dplyr::bind_rows(fhdsl_stats_list$link_clicks,itcr_stats_list$link_clicks) %>%
+  dplyr::filter(
+    !(website %in% not_itcr)
+    )
+  saveRDS(ga_link_clicks, file.path("data","itcr_ga_link_click_data.RDS"))
+  
 } else {
-  all_data <- readRDS(file.path("data","itcr_ga_data.RDS"))
+  ga_metrics <- readRDS(file.path("data","itcr_ga_metric_data.RDS"))
+  ga_dims <- readRDS(file.path("data","itcr_ga_dims_data.RDS"))
+  ga_link_clicks <- readRDS(file.path("data","itcr_ga_link_click_data.RDS"))
 }
-```
 
-```{r}
 # Collect Coursera numbers by hand -- there's no API
 coursera_numbers <- c(
   "AI in Software" = 137,
@@ -57,11 +77,8 @@ coursera_numbers <- c(
   data.frame() %>%
   tibble::rownames_to_column("website") %>%
   dplyr::rename("total_coursera_enrollments"= ".")
-```
 
-```{r}
 # Collect Leanpub numbers by hand -- their API is limited
-
 leanpub_numbers <- c(
   "AI in Software" = 7,
   "Leadership Course" = 32,
@@ -74,21 +91,25 @@ leanpub_numbers <- c(
   data.frame() %>%
   tibble::rownames_to_column("website") %>%
   dplyr::rename("total_leanpub_enrollees"= ".")
-```
 
-```{r}
-# Filter out non ITCR websites
-itcr_data <- all_data %>%
-  dplyr::filter(!(website %in% c("hutchdatasci", "whoiswho", "MMDS", "FH Cluster 101", "AnVIL_Researcher_Journey"))) %>%
+# Join this all together
+itcr_course_data <- ga_metrics %>% 
   dplyr::left_join(coursera_numbers) %>%
   dplyr::left_join(leanpub_numbers)
 
-readr::write_tsv(itcr_data, file.path("data", "itcr_website_metrics.tsv"))
+readr::write_tsv(itcr_course_data, file.path("data", "itcr_course_metrics.tsv"))
+```
+
+## Collect Meeting Info from Calendly
+
+```{r}
+meetings <- list_calendly_events(user = calendly_account$resource$uri)
 ```
 
 ## Collect Loqui Video Creation User data
 
 ### Unique users of Loqui
+
 ```{r}
 loqui_usage <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1G_HTU-bv2k5txExP8EH3ScUfGqtW1P3syThD84Z-g9k/edit#gid=0")
 loqui_usage %>% count(email) %>% dplyr::pull(email) %>% length()
@@ -96,8 +117,16 @@ loqui_usage %>% count(email) %>% dplyr::pull(email) %>% length()
 
 ### Number of videos made with Loqui
 
-```{r}
+```{r, message = FALSE}
 loqui_usage %>% count(email) %>% dplyr::pull(n) %>% sum()
+```
+
+## Collect Calendly info 
+
+```{r}
+calendly_user <- get_calendly_user()
+calendly_events <- list_calendly_events(user = calendly_user$resource$uri)
+
 ```
 
 ## Collect Workshop Feedback Info
@@ -118,6 +147,7 @@ poll_data <- itcr_slido_data$`Polls-per-user` %>%
 ## Data Visualizations
 
 ### How likely would you be to recommend this workshop?
+
 ```{r}
 as.numeric(c(poll_data$how_likely_would_you_be_to_recommend_this_workshop, poll_data$how_likely_would_you_be_to_recommend_this_workshop_2)) %>%
   ggplot2::qplot(geom = "bar") +
@@ -134,9 +164,7 @@ as.numeric(c(poll_data$how_likely_would_you_be_to_recommend_this_workshop, poll_
     dplyr::filter(how_likely_are_you_to_use_what_you_learned_in_your_daily_work %in% c("Extremely likely", "Likely", "Not very likely", "Somewhat likely", "Very likely"))
 
   poll_data$how_likely_are_you_to_use_what_you_learned_in_your_daily_work <- factor(poll_data$how_likely_are_you_to_use_what_you_learned_in_your_daily_work, levels = c("Not very likely",  "Somewhat likely", "Likely", "Very likely", "Extremely likely"))
-```
 
-```{r}
    ggplot2::ggplot(poll_data, ggplot2::aes(x = how_likely_are_you_to_use_what_you_learned_in_your_daily_work)) +
     ggplot2::geom_bar(stat = "count", fill = "#CBC3E3") +
     ggplot2::theme_classic() +
@@ -190,10 +218,10 @@ unique_emails <-
 length(unique_emails)
 ```
 
-## Bookdown visits
+## Unique visitors to websites
 
 ```{r}
-ggplot2::ggplot(itcr_data, ggplot2::aes(x = reorder(website, -activeUsers), y = activeUsers)) +
+ggplot2::ggplot(itcr_course_data, ggplot2::aes(x = reorder(website, -activeUsers), y = activeUsers)) +
   ggplot2::geom_bar(stat = "identity", fill = "#89CFF0") +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
@@ -203,10 +231,55 @@ ggplot2::ggplot(itcr_data, ggplot2::aes(x = reorder(website, -activeUsers), y = 
   ggplot2::ggsave(file.path("plots", "itn_website_visits.png"), width = 4, height = 3)
 ```
 
+## ITN Course and Website Traffic Overtime 
+
+```{r}
+web_traffic_overtime <- ga_dims %>% 
+  dplyr::mutate(date = lubridate::ymd(paste0(year, "-", month, "-", day))) %>% 
+  dplyr::mutate(month_year = lubridate::ym(paste0(year, "-", month))) %>% 
+  dplyr::mutate(web_yn = dplyr::case_when(
+    website == "ITN Website" ~ "ITN Website", 
+    website != "ITN Website" ~ "ITN Online Course Website"))
+
+traffic_plot <- web_traffic_overtime %>% 
+  dplyr::filter(website != "ITN Website") %>% 
+  dplyr::group_by(month_year) %>% 
+  dplyr::count() %>% 
+  ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
+  ggplot2::geom_bar(stat = "identity", fill = "pink") + 
+  ggplot2::scale_x_date(date_labels = "%b %Y") + 
+  ggplot2::ylab("ITN Website Visits Overtime") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1))
+
+ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot.png"), width = 4, height = 2)
+  
+traffic_plot
+```
+
+### Course traffic by course
+
+```{r}
+web_traffic_overtime %>% 
+  dplyr::group_by(website, month_year) %>% 
+  dplyr::count() %>% 
+ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
+  ggplot2::geom_bar(stat = "identity", fill = "lightgreen") + 
+  ggplot2::scale_x_date(date_labels = "%b %Y") + 
+  ggplot2::ylab("Unique ITN Website Learners Overtime") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 8)) + 
+  ggplot2::facet_wrap(~website) 
+
+ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), width = 4, height = 2)
+```
+
+
 ## Coursera
 
 ```{r}
-ggplot2::ggplot(itcr_data %>% dplyr::filter(total_coursera_enrollments > 0), ggplot2::aes(x = reorder(website, -total_coursera_enrollments), y = total_coursera_enrollments)) +
+ggplot2::ggplot(itcr_course_data %>% dplyr::filter(total_coursera_enrollments > 0), ggplot2::aes(x = reorder(website, -total_coursera_enrollments), y = total_coursera_enrollments)) +
   ggplot2::geom_bar(stat = "identity", fill = "#89CFF0", na.rm = TRUE) +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
@@ -220,7 +293,7 @@ ggplot2::ggplot(itcr_data %>% dplyr::filter(total_coursera_enrollments > 0), ggp
 ## Leanpub
 
 ```{r}
-ggplot2::ggplot(itcr_data%>% dplyr::filter(total_leanpub_enrollees > 0) , ggplot2::aes(x = reorder(website, -total_leanpub_enrollees), y = total_leanpub_enrollees)) +
+ggplot2::ggplot(itcr_course_data %>% dplyr::filter(total_leanpub_enrollees > 0) , ggplot2::aes(x = reorder(website, -total_leanpub_enrollees), y = total_leanpub_enrollees)) +
   ggplot2::geom_bar(stat = "identity", fill = "#89CFF0", na.rm = TRUE) +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
@@ -236,9 +309,9 @@ ggplot2::ggsave(file.path("plots", "itn_leanpub_enrollments.png"), width = 4, he
 ```{r}
 totals <- data.frame(
   learners = c(
-    sum(itcr_data$activeUsers, na.rm = TRUE),
-    sum(itcr_data$total_coursera_enrollments, na.rm = TRUE),
-    sum(itcr_data$total_leanpub_enrollees, na.rm = TRUE)),
+    sum(itcr_course_data$activeUsers, na.rm = TRUE),
+    sum(itcr_course_data$total_coursera_enrollments, na.rm = TRUE),
+    sum(itcr_course_data$total_leanpub_enrollees, na.rm = TRUE)),
   modality = c("website", "Coursera", "Leanpub"))
 ```
 
@@ -254,7 +327,6 @@ ggplot2::ggplot(totals , ggplot2::aes(x = reorder(modality, -learners), y = lear
   ggplot2::geom_text(ggplot2::aes(label = learners), size = 3, vjust = - 1, na.rm = TRUE)
 ggplot2::ggsave(file.path("plots", "itn_total_enrollments.png"), width = 4, height = 2)
 ```
-
 
 ### Session Info 
 
