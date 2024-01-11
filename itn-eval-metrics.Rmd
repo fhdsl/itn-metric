@@ -236,11 +236,11 @@ ggplot2::ggplot(ga_metrics, ggplot2::aes(x = reorder(website, -activeUsers), y =
 user_totals <- ga_metrics %>% 
   janitor::clean_names() %>% 
   dplyr::select(website, active_users, average_session_duration) %>% 
-  knitr::kable(digits=2, long_table = TRUE,padding = 2) %>%
-  kableExtra::kable_styling(latex_options = c("striped", "scale_down"))
+  knitr::kable(digits=2, long_table = TRUE,padding = 2) # %>%
+  #kable_styling(latex_options = c("striped", "scale_down"))
 
-user_totals %>%
-  kableExtra::save_kable(file.path("plots/course_user_table.pdf"))
+#user_totals %>%
+  #kableExtra::save_kable(file.path("plots/course_user_table.pdf"))
 
 user_totals
 ```
@@ -249,11 +249,11 @@ user_totals
 user_engagement <- ga_metrics %>% 
   janitor::clean_names() %>% 
   dplyr::select(website, screen_page_views_per_user, sessions, average_session_duration, screen_page_views) %>% 
-  knitr::kable(digits=2, long_table = TRUE, padding = 2) %>%
-  kableExtra::kable_styling(latex_options = c("striped", "scale_down"))
+  knitr::kable(digits=2, long_table = TRUE, padding = 2) # %>%
+  #kableExtra::kable_styling(latex_options = c("striped", "scale_down"))
 
-user_engagement %>%
-  kableExtra::save_kable("plots/course_engagement_table.pdf")
+#user_engagement %>%
+#  kableExtra::save_kable("plots/course_engagement_table.pdf")
 
 user_engagement
 ```
