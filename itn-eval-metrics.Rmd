@@ -3,7 +3,10 @@ title: "ITN Eval Metrics"
 author: "Candace Savonen"
 date: "2024-01-05"
 output:
-  html_document: default
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 2
   word_document: default
 ---
 
@@ -11,21 +14,22 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# A first quick stab for collecting metrics on ITN happenings.
+## Data Set Up
 
 ```{r}
 dir.create("data", showWarnings = FALSE)
 dir.create("plots", showWarnings = FALSE)
+set.seed(1234)
 ```
 
 ```{r}
 devtools::load_all("../metricminer/")
-#authorize("google")
+# authorize("google")
 
 accounts <- get_ga_user()
 ```
 
-## Collect google analytics
+## Collect online course data
 
 ```{r}
 if (!file.exists(file.path("data", "itcr_ga_data.RDS"))) {
@@ -40,9 +44,8 @@ if (!file.exists(file.path("data", "itcr_ga_data.RDS"))) {
 }
 ```
 
-# Collect coursera numbers by hand -- there's no API
-
 ```{r}
+# Collect Coursera numbers by hand -- there's no API
 coursera_numbers <- c(
   "AI in Software" = 137,
   "Leadership Course" = 623,
@@ -56,9 +59,9 @@ coursera_numbers <- c(
   dplyr::rename("total_coursera_enrollments"= ".")
 ```
 
-# Collect leanpub numbers by hand -- their API is limited
-
 ```{r}
+# Collect Leanpub numbers by hand -- their API is limited
+
 leanpub_numbers <- c(
   "AI in Software" = 7,
   "Leadership Course" = 32,
@@ -73,25 +76,31 @@ leanpub_numbers <- c(
   dplyr::rename("total_leanpub_enrollees"= ".")
 ```
 
-# Filter out non ITCR websites
-
 ```{r}
+# Filter out non ITCR websites
 itcr_data <- all_data %>%
   dplyr::filter(!(website %in% c("hutchdatasci", "whoiswho", "MMDS", "FH Cluster 101", "AnVIL_Researcher_Journey"))) %>%
   dplyr::left_join(coursera_numbers) %>%
-  dplyr::left_join(leanpub_numbers) 
+  dplyr::left_join(leanpub_numbers)
 
 readr::write_tsv(itcr_data, file.path("data", "itcr_website_metrics.tsv"))
 ```
 
-# Collect loqui data
+## Collect Loqui Video Creation User data
 
+### Unique users of Loqui
 ```{r}
 loqui_usage <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1G_HTU-bv2k5txExP8EH3ScUfGqtW1P3syThD84Z-g9k/edit#gid=0")
-loqui_usage %>% count(email)
+loqui_usage %>% count(email) %>% dplyr::pull(email) %>% length()
 ```
 
-## Collect slido info
+### Number of videos made with Loqui
+
+```{r}
+loqui_usage %>% count(email) %>% dplyr::pull(n) %>% sum()
+```
+
+## Collect Workshop Feedback Info
 
 ```{r}
 if (!file.exists(file.path("data", "itcr_slido_data.RDS"))) {
@@ -106,10 +115,9 @@ poll_data <- itcr_slido_data$`Polls-per-user` %>%
   janitor::clean_names()
 ```
 
-## Plots
+## Data Visualizations
 
-### Slido plots 
-
+### How likely would you be to recommend this workshop?
 ```{r}
 as.numeric(c(poll_data$how_likely_would_you_be_to_recommend_this_workshop, poll_data$how_likely_would_you_be_to_recommend_this_workshop_2)) %>%
   ggplot2::qplot(geom = "bar") +
@@ -119,7 +127,7 @@ as.numeric(c(poll_data$how_likely_would_you_be_to_recommend_this_workshop, poll_
   ggplot2::ggsave(file.path("plots", "itn_workshop_rec.png"), width = 4, height = 2)
 ```
 
-### Workshop Relevance 
+### Workshop Relevance Feedback
 
 ```{r}
   poll_data <- poll_data %>%
@@ -136,16 +144,16 @@ as.numeric(c(poll_data$how_likely_would_you_be_to_recommend_this_workshop, poll_
     ggplot2::labs(title = "How likely are you to use what you learned in your daily work?") +
     ggplot2::xlab("")
    ggplot2::ggsave(file.path("plots", "itn_relevance.png"), width = 4, height = 2)
-
-itcr_slido_data$JoinedParticipants %>% dplyr::count(event_name)
 ```
 
-### Wordclouds
+### Wordclouds for Qualitative Workshop Feedback
 
-```{r}
+```{r, results = 'hide'}
 ud_model <- udpipe::udpipe_download_model(language = "english")
 ud_model <- udpipe::udpipe_load_model(ud_model$file_model)
 ```
+
+#### What did you like most about the workshop?
 
 ```{r}
 results <- udpipe::udpipe_annotate(ud_model, x = poll_data$what_did_you_like_most_about_the_workshop) %>%
@@ -158,6 +166,8 @@ wordcloud::wordcloud(words = results$lemma, freq=results$n,colors = c("#98fb98",
           min.freq = 3, scale = c(3, .4))
 ```
 
+#### Please share any recommendations you have for improvements
+
 ```{r}
 rec_results <- udpipe::udpipe_annotate(ud_model, x = poll_data$please_share_any_recommendations_you_have_for_improvements) %>%
   as.data.frame() %>%
@@ -169,7 +179,7 @@ wordcloud::wordcloud(words = rec_results$lemma, freq=rec_results$n,colors = c("#
           min.freq = 3, scale = c(4, .4))
 ```
 
-## Get unique worshop attendees
+## Get number of unique workshop attendees
 
 ```{r}
 unique_emails <-
@@ -189,8 +199,8 @@ ggplot2::ggplot(itcr_data, ggplot2::aes(x = reorder(website, -activeUsers), y = 
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
   ggplot2::xlab("") +
   ggplot2::geom_text(ggplot2::aes(label = activeUsers), size = 3, vjust = - 1) +
-  ggplot2::ylim(c(0, 5500))
-  ggplot2::ggsave(file.path("plots", "itn_website_visits.png"), width = 4, height = 2)
+  ggplot2::ylim(c(0, 6000))
+  ggplot2::ggsave(file.path("plots", "itn_website_visits.png"), width = 4, height = 3)
 ```
 
 ## Coursera
@@ -228,9 +238,11 @@ totals <- data.frame(
   learners = c(
     sum(itcr_data$activeUsers, na.rm = TRUE),
     sum(itcr_data$total_coursera_enrollments, na.rm = TRUE),
-    sum(itcr_data$total_leanpub_enrollees, na.rm = TRUE)), 
+    sum(itcr_data$total_leanpub_enrollees, na.rm = TRUE)),
   modality = c("website", "Coursera", "Leanpub"))
 ```
+
+### Total learners from each platform
 
 ```{r}
 ggplot2::ggplot(totals , ggplot2::aes(x = reorder(modality, -learners), y = learners)) +
@@ -239,6 +251,13 @@ ggplot2::ggplot(totals , ggplot2::aes(x = reorder(modality, -learners), y = lear
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
   ggplot2::xlab("") +
   ggplot2::ylab("Visitors/Enrollees") +
-  ggplot2::geom_text(ggplot2::aes(label = learners), size = 3, vjust = - 1, na.rm = TRUE) 
+  ggplot2::geom_text(ggplot2::aes(label = learners), size = 3, vjust = - 1, na.rm = TRUE)
 ggplot2::ggsave(file.path("plots", "itn_total_enrollments.png"), width = 4, height = 2)
+```
+
+
+### Session Info 
+
+```{r}
+sessionInfo()
 ```
