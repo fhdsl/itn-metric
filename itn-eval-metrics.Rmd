@@ -20,11 +20,22 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 dir.create("data", showWarnings = FALSE)
 dir.create("plots", showWarnings = FALSE)
+
 set.seed(1234)
 
 devtools::load_all("../metricminer/")
-# authorize("google")
-# authorize("calendly")
+library("ggplot2")
+library("dlstats")
+
+source(file.path("local_auth_2.R"))
+auth_from_secret("calendly", token = Sys.getenv("METRICMINER_CALENDLY"))
+
+auth_from_secret("google",
+                 refresh_token = Sys.getenv("METRICMINER_GOOGLE_REFRESH"),
+                 access_token = Sys.getenv("METRICMINER_GOOGLE_ACCESS"),
+                 cache = TRUE)
+
+auth_from_secret("github", token = Sys.getenv("METRICMINER_GITHUB_PAT"))
 
 ga_accounts <- get_ga_user()
 calendly_account <- get_calendly_user()
@@ -144,6 +155,27 @@ poll_data <- itcr_slido_data$`Polls-per-user` %>%
   janitor::clean_names()
 ```
 
+
+```{r}
+promoters_categories <- poll_data %>% 
+  dplyr::mutate(how_likely_would_you_be_to_recommend_this_workshop = 
+                  as.numeric(how_likely_would_you_be_to_recommend_this_workshop), 
+                promoter = dplyr::case_when(
+                  how_likely_would_you_be_to_recommend_this_workshop < 7 ~ "detractors", 
+                  how_likely_would_you_be_to_recommend_this_workshop == 7 ~ "passives", 
+                  how_likely_would_you_be_to_recommend_this_workshop == 8 ~ "passives", 
+                  how_likely_would_you_be_to_recommend_this_workshop > 8 ~ "promoters")) %>% 
+  dplyr::group_by(promoter) %>%
+  dplyr::count(promoter)
+
+promoter_sums <- promoters_categories$n
+names(promoter_sums) <- promoters_categories$promoter
+sum(promoter_sums)
+
+# Net Promoter Score
+promoter_sums["promoters"]/sum(promoter_sums)- promoter_sums["detractors"]/sum(promoter_sums)
+```
+
 ## Data Visualizations
 
 ### How likely would you be to recommend this workshop?
@@ -230,6 +262,7 @@ ggplot2::ggplot(ga_metrics, ggplot2::aes(x = reorder(website, -activeUsers), y =
   ggplot2::ylim(c(0, 6000))
   ggplot2::ggsave(file.path("plots", "itn_website_visits.png"), width = 4, height = 3)
 ```
+
 ## Table of user engagement
 
 ```{r}
@@ -248,7 +281,7 @@ user_totals
 ```{r}
 user_engagement <- ga_metrics %>% 
   janitor::clean_names() %>% 
-  dplyr::select(website, screen_page_views_per_user, sessions, average_session_duration, screen_page_views) %>% 
+  dplyr::select(website, screen_page_views_per_user, sessions, screen_page_views, engagement_rate) %>% 
   knitr::kable(digits=2, long_table = TRUE, padding = 2) # %>%
   #kableExtra::kable_styling(latex_options = c("striped", "scale_down"))
 
@@ -256,6 +289,27 @@ user_engagement <- ga_metrics %>%
 #  kableExtra::save_kable("plots/course_engagement_table.pdf")
 
 user_engagement
+```
+
+
+```{r}
+ga_metrics %>% janitor::clean_names() %>% 
+  dplyr::select(website, screen_page_views_per_user, average_session_duration, event_count_per_user, engagement_rate) %>% 
+  tidyr::pivot_longer(!website, 
+                      names_to = "metric_name", 
+                      values_to = "value") %>% 
+  dplyr::filter(website != "OTTR website") %>% 
+  dplyr::filter(website != "ITN Website") %>% 
+  dplyr::mutate(website = dplyr::case_when(website == "Advanced Reproducibility in Cancer Informatics" ~ "Advanced Reproducibility", 
+                                           TRUE ~ website)) %>% 
+  ggplot2::ggplot(ggplot2::aes(y = value, x = website, fill = metric_name)) +
+  ggplot2::geom_bar(position = "dodge", stat = "identity") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 legend.position="none") +
+  ggplot2::facet_wrap(~metric_name, scales = "free_y")
+
+ggplot2::ggsave(file.path("plots", "itn_engagement_stats.png"), width = 6, height = 4)
 ```
 
 ## ITN Course and Website Traffic Overtime 
@@ -269,18 +323,19 @@ web_traffic_overtime <- ga_dims %>%
     website != "ITN Website" ~ "ITN Online Course Website"))
 
 traffic_plot <- web_traffic_overtime %>% 
-  dplyr::filter(website != "ITN Website") %>% 
+  dplyr::filter(website != "ITN Website") %>%
+  dplyr::filter(website != "OTTR website") %>% 
   dplyr::group_by(month_year) %>% 
   dplyr::count() %>% 
   ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
   ggplot2::geom_bar(stat = "identity", fill = "pink") + 
   ggplot2::scale_x_date(date_labels = "%b %Y") + 
-  ggplot2::ylab("ITN Website Visits Overtime") +
+  ggplot2::ylab("Unique ITN Online Course Visitors") +
   ggplot2::xlab("") +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1))
 
-ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot.png"), width = 4, height = 2)
+ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot.png"), width = 4, height = 3.5)
   
 traffic_plot
 ```
@@ -291,6 +346,8 @@ traffic_plot
 web_traffic_overtime %>% 
   dplyr::group_by(website, month_year) %>% 
   dplyr::count() %>% 
+  dplyr::filter(website != "ITN Website") %>% 
+  dplyr::filter(website != "OTTR website") %>% 
 ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
   ggplot2::geom_bar(stat = "identity", fill = "lightgreen") + 
   ggplot2::scale_x_date(date_labels = "%b %Y") + 
@@ -302,7 +359,50 @@ ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) +
 
 ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), width = 10, height = 5)
 ```
+### Software engagement 
 
+```{r}
+web_traffic_overtime %>% 
+  dplyr::group_by(website, month_year) %>% 
+  dplyr::count() %>% 
+  dplyr::filter(website %in% c("ITN Website", "OTTR website")) %>%
+ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
+  ggplot2::geom_bar(stat = "identity", fill = "pink") + 
+  ggplot2::scale_x_date(date_labels = "%b %Y") + 
+  ggplot2::ylab("Unique ITN software website visitors") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 8)) + 
+  ggplot2::facet_wrap(~website)
+
+ggplot2::ggsave(file.path("plots", "itn_software_website_traffic.png"), width = 10, height = 5)
+```
+
+### CRAN downloads
+
+```{r}
+ download_stats <- cran_stats(c("ottrpal", "conrad", "ari", "text2speech"))
+
+ download_stats %>% dplyr::summarize(download_total = sum(downloads))
+
+ download_stats %>% dplyr::group_by(package) %>%
+   dplyr::summarize(download_total = sum(downloads))
+
+sum(download_stats$downloads)
+
+if (!is.null(download_stats)) {
+  print(head(download_stats))
+  ggplot(download_stats, aes(end, downloads, group=package, color=package)) +
+    geom_line() +
+    geom_point() +
+    scale_y_log10() + 
+    theme_minimal()
+  
+  ggplot2::ggsave(file.path("plots", "itn_software_cran_downloads.png"), width = 10, height = 5)
+ }
+
+
+```
 
 ## Coursera
 
@@ -335,11 +435,15 @@ ggplot2::ggsave(file.path("plots", "itn_leanpub_enrollments.png"), width = 4, he
 ## Learning Modalities
 
 ```{r}
+course_only <- itcr_course_data %>% 
+  dplyr::filter(website != "ITN Website") %>% 
+  dplyr::filter(website != "OTTR website")
+
 totals <- data.frame(
   learners = c(
-    sum(itcr_course_data$activeUsers, na.rm = TRUE),
-    sum(itcr_course_data$total_coursera_enrollments, na.rm = TRUE),
-    sum(itcr_course_data$total_leanpub_enrollees, na.rm = TRUE)),
+    sum(course_only$activeUsers, na.rm = TRUE),
+    sum(course_only$total_coursera_enrollments, na.rm = TRUE),
+    sum(course_only$total_leanpub_enrollees, na.rm = TRUE)),
   modality = c("website", "Coursera", "Leanpub"))
 ```
 
@@ -352,8 +456,9 @@ ggplot2::ggplot(totals , ggplot2::aes(x = reorder(modality, -learners), y = lear
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
   ggplot2::xlab("") +
   ggplot2::ylab("Visitors/Enrollees") +
-  ggplot2::geom_text(ggplot2::aes(label = learners), size = 3, vjust = - 1, na.rm = TRUE)
-ggplot2::ggsave(file.path("plots", "itn_total_enrollments.png"), width = 4, height = 2)
+  ggplot2::geom_text(ggplot2::aes(label = learners), size = 3, vjust = - 1, na.rm = TRUE) + 
+  ggplot2::ylim(c(0, 4200))
+ggplot2::ggsave(file.path("plots", "itn_total_enrollments.png"), width = 4, height = 3)
 ```
 
 ### Session Info 
