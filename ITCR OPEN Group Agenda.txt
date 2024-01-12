@@ -177,7 +177,6 @@ Aaron Holmes, UCLA Health
 Jake Albrecht, Sage Bionetworks
 Andrey Ivanov, Emory
 Rick Bradshaw U of Utah Biomedical Informatics
-January 2022 Meeting
 Greg Caporaso, Northern Arizona University
 Michael Reich, UCSD
 Brian Haas, Broad Inst
