@@ -1,0 +1,317 @@
+Jan 2024 Meeting
+Mitchell Shiell, OICR
+Juli Klemm, NCI
+Andrey Ivanov, Emory
+Kate Isaac, Fred Hutch
+David Hanauer, U of Michigan
+Ava Hoffman, Fred Hutch
+Mary Goldman, UC Santa Cruz
+Michelle Berny-Lang, NCI
+Ilija Dukovski, BU
+Nicole Chen, Emory
+Alejandro Bertolet, MGH
+Li Zhang, UCSF
+Alexander Getka, UPenn
+Shasta Nicholson, Fred Hutch
+Mark Bergman, University of Pennsylvania
+Michael Reich, UCSD
+Jake Albrecht, Sage Bionetworks
+Dec 2023 Meeting
+Juli Klemm, NCI
+Rudi Pillich, UCSD
+Brian Haas, Broad Inst
+Andrey Ivanov, Emory
+Pat Schloss, U Michigan
+Candace Savonen Hutch
+Michelle Berny-Lang, NCI
+Ilija Dukovski, BU
+Nicole Chen, Emory
+Mitchell Shiell, OICR
+Rao Divi, NCI
+Mary  Goldman, UC Santa Cruz
+Joseph Perl, SLAC / Stanford
+David Hanauer, U of Michigan
+Sherry Xie, ISMMS
+Hiro Yoshida
+Jeremy Warner
+November 2023 Meeting
+Juli Klemm, NCI
+Andrey Ivanov, Emory
+Taxiarchis Botsis, JHU
+Brian Haas, Broad Institute
+Dexter Pratt, UCSD
+Michelle Berny-Lang, NCI
+Mitchell Shiell, OICR
+Johanna Beyer, Harvard
+Ilija Dukovski, BU
+David Hanauer, U of Michigan
+Howard Baek, Fred Hutch
+Sherry Xie, ISMMS
+Li-Xuan Qin, MSKCC
+Nicole Chen, Emory
+Alexander Getka, UPenn
+Mark Bergman, UPenn
+Drew Jones, NYU Langone Health
+Shasta Nicholson, Fred Hutch
+October 2023 Meeting
+Juli Klemm, NCI
+Mitchell Shiell, OICR
+Mary Goldman, UC Santa Cruz
+Heesu Kim, ISMMS
+John Erol Evangelista, ISMMS
+Giacomo Marino, ISMMS
+Daniel Clarke, ISMMS
+Stephanie Olaiya, ISMMS
+Lara Dogan, ISMMS
+Nasheath Ahmed, ISMMS
+Joseph Perl, SLAC/Stanford
+Brian Haas, Broad Inst
+Avi Ma’ayan, ISMMS
+Eden Deng, ISMMS
+Alexander Lachmann, ISMMS
+Vince Carey, Harvard
+Ido Diamant, ISMMS
+Mark Bergman, UPenn
+Taxiarchis Botsis, JHU
+David hanauer, u of Michigan
+Michelle Berny-Lang, NCI
+Howard Baek, Fred Hutch
+Jineta Banerjee, Sage Bionetworks
+Rudi Pillich, UCSD
+Alexander Getka, UPenn
+August 2023 Meeting
+Andrey Ivanov, Emory
+Mary Goldman, UC Santa Cruz
+Juli Klemm, NCI
+Dan Knight, UCLA
+Brian Haas, Broad Inst
+Howard Baek, Fred Hutch
+Rao Divi, NCI
+Michelle Berny-Lang, NCI
+Greg Caporaso, NAU
+Nicole Chen, Emory
+Alexandru Mahmoud, Brigham & Women’s Hospital
+Kivanc Kose, MSKCC
+Harry Hochheiser, University of Pittsburgh
+Aaron Holmes, UCLA
+June 2023 Meeting
+Andrey Ivanov, Emory
+Pat Schloss, U Michigan
+Sherry Xie, Mount Sinai
+Juli Klemm, NCI
+Sarthak Pati, UPenn
+Michelle Berny-Lang, NCI
+Brian Haas, Broad Inst
+Howard Baek, Fred Hutch
+Elizabeth Humphries, Fred Hutch
+Betsy Hsu, NCI
+Ken Chen, MD Anderson
+Nicole Chen, Emory
+David Hanauer, University of Michigan
+May 2023 Meeting
+Andrey Ivanov, Emory
+Michael Reich, UCSD
+Rudi Pillich, UCSD
+Natasha Gurevich, Boston University
+Christopher Lewis, PBG Consulting
+Vanessa Soon, PBG Consulting
+Victor Lau, PBG Consulting
+Juli Klemm, NCI
+Michelle Berny-Lang, NCIsc
+Mary Goldman, UC Santa Cruz
+Brian Haas, Broad Inst
+Sherry Xie, Mount Sinai
+Spyridon Bakas, UPENN
+David Hanauer, U of Michigan
+Hiro Yoshdia, MGH/HMS
+Rick Bradshaw, University of Utah Biomedical Informatics
+Mark Bergman, University of Pennsylvania
+Malgorzata Marjanska, University of Minnesota
+John Weinstein, UT MD Anderson Cancer Center
+Alexander Getka, UPenn
+Jake Albrecht, Sage Bionetworks
+Bruno De Man, GE Research
+Rick Bradshaw, U of Utah Biomedical Informatics
+April 2023 Meeting
+Andrey Ivanov, Emory
+Juli Klemm, NCI
+Mary Goldman, UC Santa Cruz
+Michelle Berny-Lang, NCI
+James Eddy, Sage Bionetworks
+John Weinstein, MD Anderson
+Brian Haas, Broad Institute
+Hiro Yoshida, MGH/HMS
+David Hanauer, U of Michigan
+Rudi Pillich, UCSD
+Jake Albrecht, Sage Bionetworks
+Sherry Xie, Mount Sinai
+Greg Caporaso, Northern Arizona University
+Bruno De Man, GE Research - Healthcare
+Michael Reich, UCSD
+Alexander Getka, UPenn
+March 2023 Meeting
+Andrey Ivanov (Emory)
+David Hanauer (University of Michigan)
+Michael Reich (UCSD)
+Juli Klemm (NCI)
+Brian Haas (Broad Institute)
+Ellen Cohen (UChicago)
+Rick Bradshaw, (University of Utah Biomedical Informatics)
+Harry Hochheiser (University of Pittsburgh)
+Mary Goldman (UC Santa Cruz)
+Martin Morgan (Roswell Park Comprehensive Cancer Center)
+Sherry Xie (Mount Sinai)
+Jake Albrecht (Sage Bionetworks)
+Rudi Pillich, UCSD
+Dan Knight (UCLA)
+Bruno De Man (GE Research) (joined late)
+February 2023 Meeting
+Michelle Berny-Lang, NCI
+Bjoern Peters, La Jolla Institute for Immunology (LJI)
+Juli Klemm, NCI
+Tali Mazor, DFCI
+Mary Goldman, UC Santa Cruz
+Karen Burns White, DF/HCC
+Natasha Gurevich, Boston University
+Aaron Holmes, UCLA Health
+Jake Albrecht, Sage Bionetworks
+Andrey Ivanov, Emory
+Rick Bradshaw U of Utah Biomedical Informatics
+January 2022 Meeting
+Greg Caporaso, Northern Arizona University
+Michael Reich, UCSD
+Brian Haas, Broad Inst
+John Weinstein, MD Anderson
+January 2023 meeting
+Michael Reich, UCSD
+Brian Haas, Broad Inst
+Spyridon Bakas, UPENN
+Juli Klemm, NCI
+David Hanauer, U of Michigan
+Sherry Xie, Mount Sinai
+Jake Albrecht, Sage Bionetworks
+Aaron Holmes, UCLA Health
+Dan Knight, UCLA Health
+Rick Bradshaw, U of Utah, Biomedical Informatics
+Michelle Berny-Lang, NCI
+Pat Schloss, U Michigan
+Hiro Yoshida, MGH/HMS
+Malgorzata Marjanska, University of Minnesota
+Helen Parkinson, European Bioinformatics Institute
+David Hanauer, U of Michigan
+December 2022 Meeting
+Juli Klemm, NCI
+Michael Reich, UCSD
+David Hanauer, University of Michigan
+Alexander Getka, UPenn
+Sherry Xie, Icahn School of Medicine at Mount Sinai
+Michelle Berny-Lang, NCI
+Brian Haas, Broad Inst
+Natasha Gurevich, Boston University
+Malgorzata Marjanska, University of Minnesota
+Greg Caporaso, Northern Arizona University
+Rao Divi, NCI
+Mary Goldman, UC Santa Cruz
+Hiro Yoshida, MGH/HMS
+Rudi Pillich, UCSD
+November 2022 Meeting
+Michael Reich, UCSD
+Candace Savonen Fred Hutch Cancer Center
+Juli Klemm, NCI
+Andrey Ivanov, Emory
+David hanauer, u of Michigan
+Brian Haas, Broad Institute
+Alexandru Mahmoud, Channing at HMS, Bioconductor Team
+Li-Xuan Qin, MSKCC
+Rick Bradshaw, University of Utah Biomedical Informatics
+Jake Albrecht, Sage Bionetworks
+Anjishnu Banerjee, MCW
+October 2022 Meeting
+Malgorzata Marjanska, University of Minnesota
+Mary Goldman, UC Santa Cruz
+Jake Albrecht, Sage Bionetworks
+Michelle Berny-Lang, NCI
+Rudi Pillich, UCSD
+Michael Reich, UCSD
+Andrey Ivanov (Emory)
+Juli Klemm, NCI
+Alexander Getka, UPenn
+Spyridon Bakas, UPenn
+Candace Savonen, Fred Hutch
+Rick Bradshaw, U of Utah
+Brian Haas, Broad Inst
+Levi Waldron, CUNY
+Anjishnu Banerjee, MCW
+September 2022 Meeting
+Pat Schloss, University of Michigan
+Mary Goldman, UC Santa Cruz
+Candace Savonen, Fred Hutch
+Rao Divi, NIH
+David Hanauer, U of Michigan
+John Weinstein, MD Anderson
+Li-Xuan Qin, MSKCC
+Michelle Berny-Lang, NCI
+Jake Albrecht Sage Bionetworks
+Rick Bradshaw U of Utah Biomedical informatics
+August 2022 Meeting
+Michael Reich, UCSD
+Alexander Getka, UPenn
+Pat Schloss, U of Michigan
+Mary Goldman, UC Santa Cruz
+David Hanauer, U of Michigan
+Juli Klemm NCI
+Candace Savonen, Fred Hutch
+Fusheng Wang, Stony Brook University
+Jake Albrecht, Sage Bionetworks
+Michelle Berny-Lang, NCI
+Rao Divi, NCI
+Li Zhang, UCSF
+Brian Haas, Broad Institute
+July 2022 Meeting
+Rick Bradshaw U of Utah
+Juli Klemm NCI
+Michelle Berny-Lang, NCI
+Greg Caporaso, NAU
+Mary Goldman, UC Santa Cruz
+Candace Savonen, Fred Hutch
+Harry Hochheiser, University of Pittsburgh
+Puneet Bajwa, OICR
+James Eddy,- Sage Bionetworks
+Justin Richardsson, OICR
+Jon Eubank, OICR
+Brandon Chan, OICR
+Christina Yung, OICR
+Rene Ranzinger, University of Georgia
+David Hanauer, U of michigan
+Jake Albrecht, Sage Bionetworks
+Martin Morgan, Roswell Park Comprehensive Cancer Center
+Nina Blazeska, La Jolla Institute for Immunology
+Jun Li, MDACC
+Rudi Pillich, UCSD
+Brian Haas, Broad Institute
+Yi Guo, university of Florida
+Michael Reich, UCSD
+June 2022 Meeting
+Michelle Berny-Lang, NCI
+Rao Divi, NCI
+Juli Klemm, NCI
+Mary Goldman, UC Santa Cruz
+Rick Bradshaw University of Utah
+Candace Savonen, Johns Hopkins
+Michael Reich, UCSD
+Josh Campbell, BU
+Fuseng Wang, Stony Brook
+Amanda Bell, GW
+John Weinstein
+Jake Albrecht, Sage Bionetworks
+May 2022 Meeting
+Rudi Pillich, UC San Diego
+Candace Savonen, Johns Hopkins
+Tali Mazor, DFCI
+Mary Goldman, UC Santa Cruz
+Amanda Bell, GW
+Michelle Berny-Lang, NCI
+Juli Klemm NCI
+David Hanauer, U of Michigan
+Rick Bradshaw U of Utah
+Michael Reich, UCSD

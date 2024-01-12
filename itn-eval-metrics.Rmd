@@ -111,11 +111,40 @@ itcr_course_data <- ga_metrics %>%
 readr::write_tsv(itcr_course_data, file.path("data", "itcr_course_metrics.tsv"))
 ```
 
-## Collect Meeting Info from Calendly
+## Collaboration Info
 
 ```{r}
-meetings <- list_calendly_events(user = calendly_account$resource$uri)
+meetings <- readr::read_csv("events-export.csv")
+
+unique(meetings$`Invitee Email`)
 ```
+
+```{r}
+open_agenda <- readLines("ITCR OPEN Group Agenda.txt")
+
+dates <- grep("20", open_agenda, value = TRUE)
+dates <- gsub(" Meeting| meeting", "", dates)
+month <- stringr::word(dates, sep = " ")
+year <- stringr::word(dates, sep = " ", start = 2)
+
+names <- grep("20", open_agenda)
+attendance <- abs(names[1:length(names)] - c(names[2:length(names)], length(open_agenda)))
+
+
+open_attendance <- data.frame(
+  date = lubridate::ym(paste(year,"-", month)),
+  attendance)
+
+ggplot2::ggplot(open_attendance, ggplot2::aes(x = date, y = attendance)) + 
+  ggplot2::geom_bar(stat = "identity", fill = "lightgreen") +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+  ggplot2::xlab("") +
+  ggplot2::geom_text(ggplot2::aes(label = attendance), size = 3, vjust = - 1) 
+  ggplot2::ggsave(file.path("plots", "open_attendance.png"), width = 4, height = 3)
+  
+```
+
 
 ## Collect Loqui Video Creation User data
 
