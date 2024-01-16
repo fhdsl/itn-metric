@@ -388,6 +388,7 @@ ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) +
 
 ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), width = 10, height = 5)
 ```
+
 ### Software engagement 
 
 ```{r}
