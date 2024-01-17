@@ -41,7 +41,7 @@ auth_from_secret("github", token = Sys.getenv("METRICMINER_GITHUB_PAT"))
 
 ga_accounts <- get_ga_user()
 calendly_account <- get_calendly_user()
-cbPalette <- c("#E69F00", "#56B4E9", "#CC79A7", "#F0E442")
+cbPalette <- c("#E69F00", "#56B4E9", "#CC79A7")
 ```
 
 ## Collect online course data
@@ -492,9 +492,27 @@ ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), wid
 ### Number of learners by how long the course has been out
 
 ```{r}
-
+itcr_course_data %>% 
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  ggplot2::ggplot(ggplot2::aes(x = coursera_launch, y = coursera_count, color = target_audience)) + 
+  ggplot2::geom_point() + 
+  ggplot2::theme_minimal() + 
+  ggplot2::scale_color_manual(values=cbPalette)
 ```
 
+```{r}
+itcr_course_data %>% 
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  dplyr::mutate(duration = today() - website_launch) %>%
+  ggplot2::ggplot(ggplot2::aes(x = duration, y = totalUsers, color = target_audience)) + 
+  ggplot2::geom_point() + 
+  ggplot2::theme_minimal() + 
+  ggplot2::xlab("How long the course has been out") +
+  ggplot2::scale_color_manual(values=cbPalette) + 
+  ggplot2::geom_text(ggplot2::aes(x = duration, y = totalUsers, label = website), size = 3, vjust = - 1, na.rm = TRUE)
+
+ggplot2::ggsave(file.path("plots", "itn_website_traffic_by_how_long_the_course_has_been_published.png"), width = 10, height = 5)
+```
 ### Software engagement 
 
 ```{r}
@@ -574,7 +592,7 @@ ggplot2::ggplot(itcr_course_data %>% dplyr::filter(coursera_count > 0), ggplot2:
   ggplot2::ylab("Coursera enrollments") +
   ggplot2::geom_text(ggplot2::aes(label = coursera_count), size = 3, vjust = - 1, na.rm = TRUE) +
   ggplot2::ylim(c(0, 1200)) + 
-  ggplot2::scale_fill_manual(values=cbPalette[-3])
+  ggplot2::scale_fill_manual(values=cbPalette)
 
   ggplot2::ggsave(file.path("plots", "itn_coursera_enrollments.png"), width = 4, height = 2)
 ```
