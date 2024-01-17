@@ -40,7 +40,7 @@ auth_from_secret("github", token = Sys.getenv("METRICMINER_GITHUB_PAT"))
 
 ga_accounts <- get_ga_user()
 calendly_account <- get_calendly_user()
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#CC79A7", "#F0E442")
+cbPalette <- c("#E69F00", "#56B4E9", "#CC79A7", "#F0E442")
 ```
 
 ## Collect online course data
@@ -78,78 +78,31 @@ if (!file.exists(file.path("data", "itcr_ga_metric_data.RDS"))) {
   ga_link_clicks <- readRDS(file.path("data","itcr_ga_link_click_data.RDS"))
 }
 
-# Collect Coursera numbers by hand -- there's no API
-coursera_numbers <- c(
-  "AI in Software" = 137,
-  "Leadership Course" = 623,
-  "Documentation and Usability Course" = 284,
-  "Computing" = 931,
-  "Reproducibility" = 359,
-  "Advanced Reproducibility in Cancer Informatics" = 264, 
-  "AI For Decision Makers" = sum(c(8, 27, 20, 39))
-) %>%
-  data.frame() %>%
-  tibble::rownames_to_column("website") %>%
-  dplyr::rename("total_coursera_enrollments"= ".")
-
-# Collect Leanpub numbers by hand -- their API is limited
-leanpub_numbers <- c(
-  "AI in Software" = 7,
-  "Leadership Course" = 32,
-  "Documentation and Usability Course" = 26,
-  "Computing" = 20,
-  "Reproducibility" = 12,
-  "Advanced Reproducibility in Cancer Informatics" = 15,
-  "Choosing Genomic Tools" = 13, 
-  "GitHub Automation for Scientists" = 2
-) %>%
-  data.frame() %>%
-  tibble::rownames_to_column("website") %>%
-  dplyr::rename("total_leanpub_enrollees"= ".")
-
-audience_df <- c(
-  "AI in Software" = "Software developers", 
-  "NIH Data Sharing" = "Leadership",
-  "AI For Decision Makers"= "Leadership",
-  "ITN Website" = "Website",
-  "Leadership Course" = "Leadership",
-  "Documentation and Usability Course"= "Software developers", 
-  "Computing" = "New to data",
-  "Reproducibility" = "New to data",
-  "Advanced Reproducibility in Cancer Informatics" = "Software developers", 
-  "Ethical Data Handling" = "Leadership",
-  "OTTR website"= "Website",
-  "Choosing Genomic Tools" = "New to data", 
-  "Overleaf Intro" = "Leadership", 
-  "GitHub Automation for Scientists" = "Software developers") %>%
-  data.frame() %>%
-  tibble::rownames_to_column("website") %>%
-  dplyr::rename("audience"= ".")
+manual_course_info <- googlesheets4::read_sheet(
+  "https://docs.google.com/spreadsheets/d/1-8vox2LzkVKzhmSFXCWjwt3jFtK-wHibRAq2fqbxEyo/edit#gid=1550012125", sheet = "Course_data", 
+  col_types = "ccDDDciii") %>% 
+  dplyr::mutate_if(is.numeric.Date, lubridate::ymd)
 
 # Join this all together
 itcr_course_data <- ga_metrics %>% 
-  dplyr::left_join(coursera_numbers) %>%
-  dplyr::left_join(leanpub_numbers) %>% 
-  dplyr::left_join(audience_df) %>% 
+  dplyr::left_join(manual_course_info) %>% 
   dplyr::mutate(website = dplyr::case_when(
     website == "Advanced Reproducibility in Cancer Informatics" ~ "Advanced Reproducibility",
-    website == "Documentation and Usability Course" ~ "Documentation and Usability", 
                                            TRUE ~ website))
 
+# Save this to a TSV
 readr::write_tsv(itcr_course_data, file.path("data", "itcr_course_metrics.tsv"))
 ```
 
 ## Get OTTR courses
 
 ```{r}
-
 sync_yamls <- c(
   "https://raw.githubusercontent.com/jhudsl/OTTR_Template/main/.github/sync.yml", 
   "https://raw.githubusercontent.com/C-MOOR/C-MOOR_Template//main/.github/sync.yml", 
   "https://raw.githubusercontent.com/jhudsl/AnVIL_Template/main/.github/sync.yml",
   "https://raw.githubusercontent.com/datatrail-jhu/DataTrail_Template/main/.github/sync.yml"
 )
-
 
 extract_repos <- function(yaml) {
   content <- yaml::read_yaml(yaml) 
@@ -250,14 +203,6 @@ loqui_usage %>% count(email) %>% dplyr::pull(email) %>% length()
 loqui_usage %>% count(email) %>% dplyr::pull(n) %>% sum()
 ```
 
-## Collect Calendly info 
-
-```{r}
-calendly_user <- get_calendly_user()
-calendly_events <- list_calendly_events(user = calendly_user$resource$uri)
-
-```
-
 ## Collect Workshop Feedback Info
 
 ```{r}
@@ -282,16 +227,16 @@ promoters_categories <- poll_data %>%
                   how_likely_would_you_be_to_recommend_this_workshop < 7 ~ "detractors", 
                   how_likely_would_you_be_to_recommend_this_workshop == 7 ~ "passives", 
                   how_likely_would_you_be_to_recommend_this_workshop == 8 ~ "passives", 
-                  how_likely_would_you_be_to_recommend_this_workshop > 8 ~ "promoters")) %>% 
-  dplyr::group_by(promoter) %>%
+                  how_likely_would_you_be_to_recommend_this_workshop > 8 ~ "promoters", 
+                  TRUE ~ NA)) %>% 
   dplyr::count(promoter)
 
 promoter_sums <- promoters_categories$n
 names(promoter_sums) <- promoters_categories$promoter
-sum(promoter_sums)
+sum(promoter_sums, na.rm = TRUE)
 
 # Net Promoter Score
-promoter_sums["promoters"]/sum(promoter_sums)- promoter_sums["detractors"]/sum(promoter_sums)
+promoter_sums["promoters"]/sum(promoter_sums, na.rm = TRUE)- promoter_sums["detractors"]/sum(promoter_sums, na.rm = TRUE)
 ```
 
 ## Data Visualizations
@@ -371,12 +316,12 @@ length(unique_emails)
 ## Unique visitors to websites
 
 ```{r}
-ggplot2::ggplot(itcr_course_data, ggplot2::aes(x = reorder(website, -activeUsers), y = activeUsers, fill = audience)) +
+ggplot2::ggplot(itcr_course_data, ggplot2::aes(x = reorder(website, -totalUsers), y = totalUsers, fill = target_audience)) +
   ggplot2::geom_bar(stat = "identity") +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
   ggplot2::xlab("") +
-  ggplot2::geom_text(ggplot2::aes(label = activeUsers), size = 3, vjust = - 1) +
+  ggplot2::geom_text(ggplot2::aes(label = totalUsers), size = 3, vjust = - 1) +
   ggplot2::ylim(c(0, 6000)) + 
   ggplot2::scale_fill_manual(values=cbPalette)
   ggplot2::ggsave(file.path("plots", "itn_website_visits.png"), width = 4, height = 3) 
@@ -389,10 +334,6 @@ user_totals <- ga_metrics %>%
   janitor::clean_names() %>% 
   dplyr::select(website, active_users, average_session_duration) %>% 
   knitr::kable(digits=2, long_table = TRUE,padding = 2) # %>%
-  #kable_styling(latex_options = c("striped", "scale_down"))
-
-#user_totals %>%
-  #kableExtra::save_kable(file.path("plots/course_user_table.pdf"))
 
 user_totals
 ```
@@ -402,10 +343,6 @@ user_engagement <- ga_metrics %>%
   janitor::clean_names() %>% 
   dplyr::select(website, screen_page_views_per_user, sessions, screen_page_views, engagement_rate) %>% 
   knitr::kable(digits=2, long_table = TRUE, padding = 2) # %>%
-  #kableExtra::kable_styling(latex_options = c("striped", "scale_down"))
-
-#user_engagement %>%
-#  kableExtra::save_kable("plots/course_engagement_table.pdf")
 
 user_engagement
 ```
@@ -413,13 +350,12 @@ user_engagement
 
 ```{r}
 itcr_course_data %>% janitor::clean_names() %>% 
-  dplyr::select(website, screen_page_views_per_user, average_session_duration, event_count_per_user, engagement_rate, audience) %>% 
-  tidyr::pivot_longer(!c(website, audience), 
+  dplyr::select(website, screen_page_views_per_user, average_session_duration, event_count_per_user, engagement_rate, target_audience) %>% 
+  tidyr::pivot_longer(!c(website, target_audience), 
                       names_to = "metric_name", 
                       values_to = "value") %>% 
-  dplyr::filter(website != "OTTR website") %>% 
-  dplyr::filter(website != "ITN Website") %>% 
-  ggplot2::ggplot(ggplot2::aes(y = value, x = website, fill = audience)) +
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  ggplot2::ggplot(ggplot2::aes(y = value, x = website, fill = target_audience)) +
   ggplot2::geom_bar(position = "dodge", stat = "identity") +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
@@ -440,11 +376,15 @@ web_traffic_overtime <- ga_dims %>%
   dplyr::mutate(web_yn = dplyr::case_when(
     website == "ITN Website" ~ "ITN Website", 
     website != "ITN Website" ~ "ITN Online Course Website")) %>% 
-  dplyr::left_join(audience_df)
+  dplyr::left_join(manual_course_info) %>%
+      dplyr::mutate(website = dplyr::case_when(
+    website == "Advanced Reproducibility in Cancer Informatics" ~ "Advanced Reproducibility",
+                                           TRUE ~ website)) 
+```
 
+```{r}
 traffic_plot <- web_traffic_overtime %>% 
-  dplyr::filter(website != "ITN Website") %>%
-  dplyr::filter(website != "OTTR website") %>% 
+  dplyr::filter(website %in% c("ITN Website", "OTTR website", "metricminer.org")) %>%
   dplyr::group_by(month_year) %>% 
   dplyr::count() %>% 
   ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
@@ -453,7 +393,7 @@ traffic_plot <- web_traffic_overtime %>%
   ggplot2::ylab("Unique ITN Online Course Visitors") +
   ggplot2::xlab("") +
   ggplot2::theme_minimal() +
-  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1))
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1)) 
 
 ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot.png"), width = 4, height = 3.5)
   
@@ -464,17 +404,16 @@ traffic_plot
 ```{r}
 long_df <- itcr_course_data %>% dplyr::select(c("website", 
                                      "totalUsers",
-                                     "total_coursera_enrollments", 
-                                     "total_leanpub_enrollees", 
-                                     "audience")) %>%
-  tidyr::pivot_longer(!c(website, audience),
+                                     "coursera_count", 
+                                     "leanpub_count", 
+                                     "target_audience")) %>%
+  tidyr::pivot_longer(!c(website, target_audience),
                                          names_to = "modality", 
                                          values_to = "learner_count") %>%
-  dplyr::filter(website != "ITN Website") %>%
-  dplyr::filter(website != "OTTR website") %>%   
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
   dplyr::mutate(modality = dplyr::case_when(
-    modality == "total_leanpub_enrollees" ~ "Total Leanpub Enrollments", 
-    modality == "total_coursera_enrollments" ~ "Total Coursera Enrollments",
+    modality == "leanpub_count" ~ "Total Leanpub Enrollments", 
+    modality == "coursera_count" ~ "Total Coursera Enrollments",
     modality == "totalUsers" ~ "Website Learners", 
     TRUE ~ modality
   ))
@@ -485,10 +424,9 @@ long_df <- itcr_course_data %>% dplyr::select(c("website",
 
 ```{r}
 long_df %>% 
-  dplyr::group_by(modality, audience) %>% 
+  dplyr::group_by(modality, target_audience) %>% 
   dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
-  dplyr::filter(audience != "Other") %>%
-ggplot2::ggplot(ggplot2::aes(x = reorder(modality, -total_learners), y = total_learners, fill = audience)) +
+ggplot2::ggplot(ggplot2::aes(x = reorder(modality, -total_learners), y = total_learners, fill = target_audience)) +
   ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
@@ -496,7 +434,7 @@ ggplot2::ggplot(ggplot2::aes(x = reorder(modality, -total_learners), y = total_l
   ggplot2::ylab("Visitors/Enrollees") +
   ggplot2::geom_text(ggplot2::aes(label = total_learners), size = 3, vjust = - 1, na.rm = TRUE) + 
   ggplot2::ylim(c(0, 4200)) + 
-  ggplot2::facet_wrap(~audience) + 
+  ggplot2::facet_wrap(~target_audience) + 
   ggplot2::scale_fill_manual(values=cbPalette)
 
 ggplot2::ggsave(file.path("plots", "itn_total_enrollments.png"), width = 8, height = 3)
@@ -506,10 +444,9 @@ ggplot2::ggsave(file.path("plots", "itn_total_enrollments.png"), width = 8, heig
 
 ```{r}  
 long_df %>% 
-  dplyr::group_by(website, audience) %>% 
+  dplyr::group_by(website, target_audience) %>% 
   dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
-  dplyr::filter(audience != "Other") %>%
-ggplot2::ggplot(ggplot2::aes(y = total_learners, x = reorder(website, -total_learners), fill = audience)) + 
+ggplot2::ggplot(ggplot2::aes(y = total_learners, x = reorder(website, -total_learners), fill = target_audience)) + 
   ggplot2::geom_bar(stat = "identity") + 
   ggplot2::ylab("Total learners by course") +
   ggplot2::theme_minimal() +
@@ -525,7 +462,7 @@ ggplot2::ggsave(file.path("plots", "itn_total_learners_by_course.png"), width = 
 
 ```{r}
 long_df %>% 
-  dplyr::group_by(website, audience) %>%
+  dplyr::group_by(website, target_audience) %>%
   dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
   dplyr::arrange(-total_learners) %>% 
   knitr::kable()
@@ -534,17 +471,11 @@ long_df %>%
 ### Course traffic by course
 
 ```{r}
-web_traffic_overtime %>% 
-    dplyr::mutate(website = dplyr::case_when(
-    website == "Advanced Reproducibility in Cancer Informatics" ~ "Advanced Reproducibility",
-    website == "Documentation and Usability Course" ~ "Documentation and Usability", 
-                                           TRUE ~ website)) %>%
-  dplyr::group_by(website, month_year, audience) %>% 
+web_traffic_overtime %>%
+  dplyr::group_by(website, month_year, target_audience) %>% 
   dplyr::count() %>% 
-  dplyr::filter(website != "ITN Website") %>% 
-  dplyr::filter(website != "OTTR website") %>% 
-  dplyr::left_join(audience_df) %>% 
-ggplot2::ggplot(ggplot2::aes(y = n, x = month_year, fill = audience)) + 
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>% 
+ggplot2::ggplot(ggplot2::aes(y = n, x = month_year, fill = target_audience)) + 
   ggplot2::geom_bar(stat = "identity") + 
   ggplot2::scale_x_date(date_labels = "%b %Y") + 
   ggplot2::ylab("Unique ITN Website Learners Overtime") +
@@ -557,21 +488,26 @@ ggplot2::ggplot(ggplot2::aes(y = n, x = month_year, fill = audience)) +
 ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), width = 10, height = 5)
 ```
 
+### Number of learners by how long the course has been out
+
+```{r}
+
+```
+
 ### Software engagement 
 
 ```{r}
 web_traffic_overtime %>% 
   dplyr::group_by(website, month_year) %>% 
   dplyr::count() %>% 
-  dplyr::filter(website %in% c("ITN Website", "OTTR website")) %>%
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
 ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
   ggplot2::geom_bar(stat = "identity", fill = "pink") + 
   ggplot2::scale_x_date(date_labels = "%b %Y") + 
   ggplot2::ylab("Unique ITN software website visitors") +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
-                 strip.text.x = ggplot2::element_text(size = 8)) + 
-  ggplot2::facet_wrap(~website) 
+                 strip.text.x = ggplot2::element_text(size = 8)) 
 
 ggplot2::ggsave(file.path("plots", "itn_software_website_traffic.png"), width = 10, height = 5)
 ```
@@ -579,25 +515,25 @@ ggplot2::ggsave(file.path("plots", "itn_software_website_traffic.png"), width = 
 ### CRAN downloads
 
 ```{r}
- download_stats <- cran_stats(c("ottrpal", "conrad", "ari", "text2speech"))
+ #download_stats <- cran_stats(c("ottrpal", "conrad", "ari", "text2speech"))
 
- download_stats %>% dplyr::summarize(download_total = sum(downloads))
+ #download_stats %>% dplyr::summarize(download_total = sum(downloads))
 
- download_stats %>% dplyr::group_by(package) %>%
-   dplyr::summarize(download_total = sum(downloads))
+ #download_stats %>% dplyr::group_by(package) %>%
+ #  dplyr::summarize(download_total = sum(downloads))
 
-sum(download_stats$downloads) + 426
+#sum(download_stats$downloads) + 426
 
-if (!is.null(download_stats)) {
-  print(head(download_stats))
-  ggplot(download_stats, aes(end, downloads, group=package, color=package)) +
-    geom_line() +
-    geom_point() +
-    scale_y_log10() + 
-    theme_minimal()
+#if (!is.null(download_stats)) {
+#  print(head(download_stats))
+#  ggplot(download_stats, aes(end, downloads, group=package, color=package)) +
+#    geom_line() +
+#    geom_point() +
+#    scale_y_log10() + 
+#    theme_minimal()
   
-  ggplot2::ggsave(file.path("plots", "itn_software_cran_downloads.png"), width = 10, height = 5)
- }
+#  ggplot2::ggsave(file.path("plots", "itn_software_cran_downloads.png"), width = 10, height = 5)
+# }
 
 
 ```
@@ -605,13 +541,13 @@ if (!is.null(download_stats)) {
 ## Coursera
 
 ```{r}
-ggplot2::ggplot(itcr_course_data %>% dplyr::filter(total_coursera_enrollments > 0), ggplot2::aes(x = reorder(website, -total_coursera_enrollments), y = total_coursera_enrollments, fill = audience)) +
+ggplot2::ggplot(itcr_course_data %>% dplyr::filter(coursera_count > 0), ggplot2::aes(x = reorder(website, -coursera_count), y = coursera_count, fill = target_audience)) +
   ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
   ggplot2::xlab("") +
   ggplot2::ylab("Coursera enrollments") +
-  ggplot2::geom_text(ggplot2::aes(label = total_coursera_enrollments), size = 3, vjust = - 1, na.rm = TRUE) +
+  ggplot2::geom_text(ggplot2::aes(label = coursera_count), size = 3, vjust = - 1, na.rm = TRUE) +
   ggplot2::ylim(c(0, 1200)) + 
   ggplot2::scale_fill_manual(values=cbPalette[-3])
 
@@ -621,13 +557,13 @@ ggplot2::ggplot(itcr_course_data %>% dplyr::filter(total_coursera_enrollments > 
 ## Leanpub
 
 ```{r}
-ggplot2::ggplot(itcr_course_data %>% dplyr::filter(total_leanpub_enrollees > 0) , ggplot2::aes(x = reorder(website, -total_leanpub_enrollees), y = total_leanpub_enrollees, fill = audience)) +
+ggplot2::ggplot(itcr_course_data %>% dplyr::filter(leanpub_count > 0) , ggplot2::aes(x = reorder(website, -leanpub_count), y = leanpub_count, fill = target_audience)) +
   ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
   ggplot2::theme_classic() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
   ggplot2::xlab("") +
   ggplot2::ylab("Leanpub enrollments") +
-  ggplot2::geom_text(ggplot2::aes(label = total_leanpub_enrollees), size = 3, vjust = - 1, na.rm = TRUE) +
+  ggplot2::geom_text(ggplot2::aes(label = leanpub_count), size = 3, vjust = - 1, na.rm = TRUE) +
   ggplot2::ylim(c(0, 40)) + 
   ggplot2::scale_fill_manual(values=cbPalette)
 
