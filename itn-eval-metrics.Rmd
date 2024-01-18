@@ -158,7 +158,23 @@ collabs %>% dplyr::count(Category) %>%
                  plot.margin = unit(c(.75,.5,.5,.5), "cm")) + 
   ggplot2::xlab("")
 
-ggplot2::ggsave(file.path("plots", "itn_collaboration_types.png"), width = 7, height = 5)
+ggplot2::ggsave(file.path("plots", "itn_collaboration_types_all.png"), width = 7, height = 5)
+```
+
+```{r}
+collabs %>% dplyr::filter(ITN_ITCR_or_external == "ITCR") %>% 
+  dplyr::count(Category) %>% 
+  ggplot2::ggplot(ggplot2::aes(y = n, x = reorder(Category,-n), fill = Category)) +
+  ggplot2::geom_bar(position = "dodge", stat = "identity") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 6),
+                 legend.position="none", 
+                 plot.margin = unit(c(.75,.5,.5,.5), "cm")) + 
+  ggplot2::xlab("") + 
+  ggplot2::ggtitle("Collaborations with ITCR funded individuals only")
+
+ggplot2::ggsave(file.path("plots", "itn_collaboration_types_itcr_only.png"), width = 7, height = 5)
 ```
 
 ```{r}
