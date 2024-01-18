@@ -1,0 +1,440 @@
+---
+title: "ITN Eval Metrics"
+author: "Candace Savonen"
+date: "2024-01-05"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 2
+    toc_float: true
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Set Up
+```{r}
+library("ggplot2")
+library("magrittr")
+
+cbPalette <- c("#E69F00", "#56B4E9", "#CC79A7")
+```
+
+
+## Load data
+```{r}
+itcr_course_data <- readr::read_tsv(file.path("data", "itcr_course_metrics.tsv"))
+ga_metrics <- readRDS(file.path("data","itcr_ga_metric_data.RDS"))
+ga_dims <- readRDS(file.path("data","itcr_ga_dims_data.RDS"))
+ga_link_clicks <- readRDS(file.path("data","itcr_ga_link_click_data.RDS"))
+itcr_slido_data <- readRDS(file.path("data", "itcr_slido_data.RDS"))
+collabs <- readr::read_tsv(file.path("data", "collabs.tsv"))
+loqui_usage <- readr::read_tsv(file.path("data", "loqui_usage.tsv"))
+itcr_website_metrics <- readr::read_tsv(file.path("data", "itcr_website_metrics.tsv"))
+web_traffic_overtime <- readr::read_tsv(file.path("data", "web_traffic_overtime.tsv"))
+```
+## Collaborations
+
+### All Collaborations
+
+```{r}
+nrow(collabs)
+
+collabs %>% dplyr::count(ITN_ITCR_or_external) %>% 
+  dplyr::mutate(perc = n/sum(n))
+```
+
+```{r}
+collabs <- collabs %>% tidyr::separate_rows("Category", sep = ", ", ) %>% 
+  dplyr::mutate(Category = trimws(Category)) %>% 
+  dplyr::filter(Category != "?")
+
+nrow(collabs)
+```
+
+```{r}
+collabs %>% dplyr::count(Category) %>% 
+  ggplot2::ggplot(ggplot2::aes(y = n, x = reorder(Category,-n), fill = Category)) +
+  ggplot2::geom_bar(position = "dodge", stat = "identity") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 6),
+                 legend.position="none", 
+                 plot.margin = unit(c(.75,.5,.5,.5), "cm")) + 
+  ggplot2::xlab("")
+
+ggplot2::ggsave(file.path("plots", "itn_collaboration_types.png"), width = 7, height = 5)
+```
+
+### Only ITCR funded collaborations
+
+## Loqui
+
+### Unique users of Loqui
+
+```{r}
+loqui_usage %>% count(email) %>% dplyr::pull(email) %>% length()
+```
+
+### Number of videos made with Loqui
+
+```{r, message = FALSE}
+loqui_usage %>% count(email) %>% dplyr::pull(n) %>% sum()
+```
+
+## Workshop Feedback Info
+
+```{r}
+poll_data <- itcr_slido_data$`Polls-per-user` %>%
+  janitor::clean_names()
+```
+
+
+```{r}
+promoters_categories <- poll_data %>% 
+  dplyr::mutate(how_likely_would_you_be_to_recommend_this_workshop = 
+                  as.numeric(how_likely_would_you_be_to_recommend_this_workshop), 
+                promoter = dplyr::case_when(
+                  how_likely_would_you_be_to_recommend_this_workshop < 7 ~ "detractors", 
+                  how_likely_would_you_be_to_recommend_this_workshop == 7 ~ "passives", 
+                  how_likely_would_you_be_to_recommend_this_workshop == 8 ~ "passives", 
+                  how_likely_would_you_be_to_recommend_this_workshop > 8 ~ "promoters", 
+                  TRUE ~ NA)) %>% 
+  dplyr::count(promoter)
+
+#edit to include `how_likely_would_you_be_to_recommend_this_workshop_2`?
+
+promoter_sums <- promoters_categories$n
+names(promoter_sums) <- promoters_categories$promoter
+sum(promoter_sums, na.rm = TRUE)
+
+# Net Promoter Score
+promoter_sums["promoters"]/sum(promoter_sums, na.rm = TRUE)- promoter_sums["detractors"]/sum(promoter_sums, na.rm = TRUE)
+```
+
+## Data Visualizations
+
+### How likely would you be to recommend this workshop?
+
+```{r}
+as.numeric(c(poll_data$how_likely_would_you_be_to_recommend_this_workshop, poll_data$how_likely_would_you_be_to_recommend_this_workshop_2)) %>%
+  ggplot2::qplot(geom = "bar") +
+  ggplot2::geom_bar(fill = "#CBC3E3") +
+  ggplot2::theme_classic() +
+  ggplot2::labs(title = "How likely would you be to recommend this workshop?")
+  ggplot2::ggsave(file.path("plots", "itn_workshop_rec.png"), width = 4, height = 2)
+```
+
+### Workshop Relevance Feedback
+
+```{r}
+  poll_data_subset <- poll_data %>%
+    dplyr::filter(how_likely_are_you_to_use_what_you_learned_in_your_daily_work %in% c("Extremely likely", "Likely", "Not very likely", "Somewhat likely", "Very likely")) #this overwrites poll_data so it's only 72 rows instead of 119
+
+  poll_data_subset$how_likely_are_you_to_use_what_you_learned_in_your_daily_work <- factor(poll_data_subset$how_likely_are_you_to_use_what_you_learned_in_your_daily_work, levels = c("Not very likely",  "Somewhat likely", "Likely", "Very likely", "Extremely likely"))
+
+   ggplot2::ggplot(poll_data_subset, ggplot2::aes(x = how_likely_are_you_to_use_what_you_learned_in_your_daily_work)) +
+    ggplot2::geom_bar(stat = "count", fill = "#CBC3E3") +
+    ggplot2::theme_classic() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+    ggplot2::labs(title = "How likely are you to use what you learned in your daily work?") +
+    ggplot2::xlab("")
+   ggplot2::ggsave(file.path("plots", "itn_relevance.png"), width = 4, height = 2)
+```
+
+### Wordclouds for Qualitative Workshop Feedback
+
+```{r, results = 'hide'}
+ud_model <- udpipe::udpipe_download_model(language = "english")
+ud_model <- udpipe::udpipe_load_model(ud_model$file_model)
+```
+
+#### What did you like most about the workshop?
+
+```{r}
+results <- udpipe::udpipe_annotate(ud_model, x = poll_data$what_did_you_like_most_about_the_workshop) %>%
+  as.data.frame() %>%
+  dplyr::filter(upos %in% c("NOUN", "ADJ", "ADV")) %>%
+  dplyr::mutate(lemma= tolower(lemma)) %>%
+  dplyr::count(lemma)
+
+wordcloud::wordcloud(words = results$lemma, freq=results$n,colors = c("#98fb98", "#83D475", "#355E3B"),
+          min.freq = 3, scale = c(3, .4))
+```
+
+#### Please share any recommendations you have for improvements
+
+```{r}
+rec_results <- udpipe::udpipe_annotate(ud_model, x = poll_data$please_share_any_recommendations_you_have_for_improvements) %>%
+  as.data.frame() %>%
+  dplyr::filter(upos %in% c("NOUN", "ADJ", "ADV")) %>%
+  dplyr::mutate(lemma= tolower(lemma)) %>%
+  dplyr::count(lemma)
+
+wordcloud::wordcloud(words = rec_results$lemma, freq=rec_results$n,colors = c("#98fb98", "#83D475", "#355E3B"),
+          min.freq = 3, scale = c(4, .4))
+```
+
+## Get number of unique workshop attendees
+
+```{r}
+unique_emails <-
+  unique(c(itcr_slido_data$`Polls-per-user`$`Please submit your email so we can log your attendance`,
+           itcr_slido_data$`Polls-per-user`$`What's your email?`,
+           itcr_slido_data$`Polls-per-user`$`What is your email?`)
+         ) %>% data.frame() %>% filter(grepl("@", .)) #filter out entries that aren't an email address
+
+nrow(unique_emails)
+```
+
+## Unique visitors to websites
+
+```{r}
+ggplot2::ggplot(itcr_course_data, ggplot2::aes(x = reorder(website, -totalUsers), y = totalUsers, fill = target_audience)) +
+  ggplot2::geom_bar(stat = "identity") +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+  ggplot2::xlab("") +
+  ggplot2::geom_text(ggplot2::aes(label = totalUsers), size = 3, vjust = - 1) +
+  ggplot2::ylim(c(0, 6000)) + 
+  ggplot2::scale_fill_manual(values=cbPalette)
+  ggplot2::ggsave(file.path("plots", "itn_website_visits.png"), width = 4, height = 3) 
+```
+
+## Table of user engagement
+
+```{r}
+user_totals <- ga_metrics %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(website, active_users, average_session_duration) %>% 
+  knitr::kable(digits=2, long_table = TRUE,padding = 2) # %>%
+
+user_totals
+```
+
+```{r}
+user_engagement <- ga_metrics %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(website, screen_page_views_per_user, sessions, screen_page_views, engagement_rate) %>% 
+  knitr::kable(digits=2, long_table = TRUE, padding = 2) # %>%
+
+user_engagement
+```
+
+
+```{r}
+itcr_course_data %>% janitor::clean_names() %>% 
+  dplyr::select(website, screen_page_views_per_user, average_session_duration, event_count_per_user, engagement_rate, target_audience) %>%
+  tidyr::pivot_longer(!c(website, target_audience), 
+                      names_to = "metric_name", 
+                      values_to = "value") %>% 
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  ggplot2::ggplot(ggplot2::aes(x = reorder(website, sort(target_audience, index.return = TRUE)$ix, FUN = identity), y = value, fill = target_audience)) +
+  ggplot2::geom_bar(position = "dodge", stat = "identity") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 8), 
+                 plot.margin = unit(c(1.5,.5,.5,.5), "cm")) +
+  ggplot2::facet_wrap(~metric_name, scales = "free_y") + 
+  ggplot2::scale_fill_manual(values=cbPalette)
+
+ggplot2::ggsave(file.path("plots", "itn_engagement_stats.png"), width = 8, height = 6)
+```
+
+## ITN Course and Website Traffic Overtime 
+
+```{r}
+traffic_plot <- web_traffic_overtime %>% 
+  dplyr::filter(website %in% c("ITN Website", "OTTR website", "metricminer.org")) %>%
+  dplyr::group_by(month_year) %>% 
+  dplyr::count() %>% 
+  ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
+  ggplot2::geom_bar(stat = "identity", fill = "pink") + 
+  ggplot2::scale_x_date(date_labels = "%b %Y") + 
+  ggplot2::ylab("Unique ITN Online Course Visitors") +
+  ggplot2::xlab("") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1)) 
+
+ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot.png"), width = 4, height = 3.5)
+  
+traffic_plot
+```
+
+
+```{r}
+long_df <- itcr_course_data %>% dplyr::select(c("website", 
+                                     "totalUsers",
+                                     "coursera_count", 
+                                     "leanpub_count", 
+                                     "target_audience")) %>%
+  tidyr::pivot_longer(!c(website, target_audience),
+                                         names_to = "modality", 
+                                         values_to = "learner_count") %>%
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  dplyr::mutate(modality = dplyr::case_when(
+    modality == "leanpub_count" ~ "Total Leanpub Enrollments", 
+    modality == "coursera_count" ~ "Total Coursera Enrollments",
+    modality == "totalUsers" ~ "Website Learners", 
+    TRUE ~ modality
+  ))
+```
+
+
+### Total learners from each modality
+
+```{r}
+long_df %>% 
+  dplyr::group_by(modality, target_audience) %>% 
+  dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
+ggplot2::ggplot(ggplot2::aes(x = reorder(modality, -total_learners), y = total_learners, fill = target_audience)) +
+  ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+  ggplot2::xlab("") +
+  ggplot2::ylab("Visitors/Enrollees") +
+  ggplot2::geom_text(ggplot2::aes(label = total_learners), size = 3, vjust = - 1, na.rm = TRUE) + 
+  ggplot2::ylim(c(0, 4200)) + 
+  ggplot2::facet_wrap(~target_audience) + 
+  ggplot2::scale_fill_manual(values=cbPalette)
+
+ggplot2::ggsave(file.path("plots", "itn_total_enrollments.png"), width = 8, height = 3)
+```
+
+### Total learners by course
+
+```{r}  
+long_df %>% 
+  dplyr::group_by(website, target_audience) %>% 
+  dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
+ggplot2::ggplot(ggplot2::aes(y = total_learners, x = reorder(website, -total_learners), fill = target_audience)) + 
+  ggplot2::geom_bar(stat = "identity") + 
+  ggplot2::ylab("Total learners by course") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 8)) + 
+  ggplot2::geom_text(ggplot2::aes(label = total_learners), size = 3, vjust = - 1, na.rm = TRUE) +
+  ggplot2::ylim(c(0, 1800)) + 
+  ggplot2::xlab("") + 
+  ggplot2::scale_fill_manual(values=cbPalette)
+
+ggplot2::ggsave(file.path("plots", "itn_total_learners_by_course.png"), width = 10, height = 5)
+```
+
+```{r}
+long_df %>% 
+  dplyr::group_by(website, target_audience) %>%
+  dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
+  dplyr::arrange(-total_learners) %>% 
+  knitr::kable()
+```
+
+### Course traffic by course
+
+```{r}
+#publishing dates for each course on the website to add vertical dashes lines to the following plot
+publishdates <- itcr_course_data[!(itcr_course_data$website %in% c("ITN Website", "OTTR website", "metricminer.org")),c("website", "website_launch")]
+publishdates <- publishdates[order(publishdates$website),]
+```
+
+```{r}
+web_traffic_overtime %>%
+  dplyr::group_by(website, month_year, target_audience) %>% 
+  dplyr::count() %>% 
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>% 
+ggplot2::ggplot(ggplot2::aes(y = n, x = month_year, fill = target_audience)) + 
+  ggplot2::geom_bar(stat = "identity") + 
+  ggplot2::scale_x_date(date_labels = "%b %Y") + 
+  ggplot2::ylab("Unique ITN Website Learners Overtime") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 8)) + 
+  ggplot2::facet_wrap(~website) + 
+  ggplot2::scale_fill_manual(values=cbPalette) +
+  ggplot2::geom_vline(data = publishdates, aes(xintercept = website_launch), linetype='dashed')
+
+ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), width = 10, height = 5)
+```
+
+### Number of learners by how long the course has been out
+
+```{r}
+itcr_course_data %>% 
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  ggplot2::ggplot(ggplot2::aes(x = coursera_launch, y = coursera_count, color = target_audience)) + 
+  ggplot2::geom_point() + 
+  ggplot2::theme_minimal() + 
+  ggplot2::scale_color_manual(values=cbPalette)
+```
+
+```{r}
+itcr_course_data %>% 
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  dplyr::mutate(duration = today() - website_launch) %>%
+  ggplot2::ggplot(ggplot2::aes(x = duration, y = totalUsers, color = target_audience)) + 
+  ggplot2::geom_point() + 
+  ggplot2::theme_minimal() + 
+  ggplot2::xlab("How long the course has been out") +
+  ggplot2::scale_color_manual(values=cbPalette) + 
+  ggplot2::geom_text(ggplot2::aes(x = duration, y = totalUsers, label = website), size = 3, vjust = - 1, na.rm = TRUE)
+
+ggplot2::ggsave(file.path("plots", "itn_website_traffic_by_how_long_the_course_has_been_published.png"), width = 10, height = 5)
+```
+### Software engagement 
+
+```{r}
+web_traffic_overtime %>% 
+  dplyr::group_by(website, month_year) %>% 
+  dplyr::count() %>% 
+  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
+  ggplot2::geom_bar(stat = "identity", fill = "pink") + 
+  ggplot2::scale_x_date(date_labels = "%b %Y") + 
+  ggplot2::ylab("Unique ITN software website visitors") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 8)) 
+
+ggplot2::ggsave(file.path("plots", "itn_software_website_traffic.png"), width = 10, height = 5)
+```
+
+## Coursera
+
+```{r}
+ggplot2::ggplot(itcr_course_data %>% dplyr::filter(coursera_count > 0), ggplot2::aes(x = reorder(website, -coursera_count), y = coursera_count, fill = target_audience)) +
+  ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+  ggplot2::xlab("") +
+  ggplot2::ylab("Coursera enrollments") +
+  ggplot2::geom_text(ggplot2::aes(label = coursera_count), size = 3, vjust = - 1, na.rm = TRUE) +
+  ggplot2::ylim(c(0, 1200)) + 
+  ggplot2::scale_fill_manual(values=cbPalette)
+
+  ggplot2::ggsave(file.path("plots", "itn_coursera_enrollments.png"), width = 4, height = 2)
+```
+
+## Leanpub
+
+```{r}
+ggplot2::ggplot(itcr_course_data %>% dplyr::filter(leanpub_count > 0) , ggplot2::aes(x = reorder(website, -leanpub_count), y = leanpub_count, fill = target_audience)) +
+  ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+  ggplot2::xlab("") +
+  ggplot2::ylab("Leanpub enrollments") +
+  ggplot2::geom_text(ggplot2::aes(label = leanpub_count), size = 3, vjust = - 1, na.rm = TRUE) +
+  ggplot2::ylim(c(0, 40)) + 
+  ggplot2::scale_fill_manual(values=cbPalette)
+
+ggplot2::ggsave(file.path("plots", "itn_leanpub_enrollments.png"), width = 4, height = 2)
+```
+
+### Session Info 
+
+```{r}
+sessionInfo()
+```
