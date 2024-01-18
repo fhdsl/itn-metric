@@ -23,10 +23,13 @@ dir.create("plots", showWarnings = FALSE)
 
 set.seed(1234)
 
-devtools::load_all("~/tool_repos/metricminer/")
+if (!("remotes" %in% installed.packages())) {
+  install.packages("remotes")
+}
+remotes::install_github("fhdsl/metricminer")
+library(metricminer)
 library("magrittr")
 
-source(file.path("local_auth_2.R"))
 auth_from_secret("calendly", token = Sys.getenv("METRICMINER_CALENDLY"))
 
 auth_from_secret("google",
@@ -124,6 +127,48 @@ itcr_drive_id <- "https://drive.google.com/drive/folders/0AJb5Zemj0AAkUk9PVA"
 itcr_slido_data <- get_slido_files(itcr_drive_id)
 saveRDS(itcr_slido_data, file.path("data", "itcr_slido_data.RDS"))
 ```
+
+
+## Collect GitHub Metrics 
+
+```{r}
+repos <- c(
+  "fhdsl/metricminer",
+  "fhdsl/metricminer.org",
+  "jhudsl/ottrpal",
+  "jhudsl/ari",
+  "jhudsl/cow",
+  "jhudsl/ottrproject.org",
+  "jhudsl/ottr_docker",
+  "jhudsl/ottr-reports",
+  "fhdsl/conrad",
+  "jhudsl/text2speech",
+  "jhudsl/OTTR_Quizzes",
+  "jhudsl/OTTR_Template",
+  "jhudsl/OTTR_Template_Website",
+  "jhudsl/ITCR_Tables",
+  "jhudsl/ITN_Platforms",
+  "FredHutch/loqui-vc",
+  "fhdsl/Choosing_Genomics_Tools",
+  "jhudsl/Informatics_Research_Leadership",
+  "jhudsl/Documentation_and_Usability",
+  "jhudsl/Reproducibility_in_Cancer_Informatics",
+  "jhudsl/Adv_Reproducibility_in_Cancer_Informatics",
+  "fhdsl/GitHub_Automation_for_Scientists",
+  "jhudsl/Computing_for_Cancer_Informatics",
+  "fhdsl/Overleaf_and_LaTeX_for_Scientific_Articles",
+  "fhdsl/Ethical_Data_Handling_for_Cancer_Research",
+  "fhdsl/AI_for_Decision_Makers",
+  "fhdsl/AI_for_Efficient_Programming",
+  "fhdsl/NIH_Data_Sharing",
+  "FredHutch/loqui"
+)
+
+gh_metrics <- get_repos_metrics(repo_names = repos)
+
+gh_metrics
+```
+
 ### Session Info 
 
 ```{r}
