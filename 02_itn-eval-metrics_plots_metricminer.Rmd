@@ -96,17 +96,18 @@ poll_data <- itcr_slido_data$`Polls-per-user` %>%
 
 ```{r}
 promoters_categories <- poll_data %>% 
-  dplyr::mutate(how_likely_would_you_be_to_recommend_this_workshop = 
-                  as.numeric(how_likely_would_you_be_to_recommend_this_workshop), 
+  mutate(merged_likely_rec = if_else(is.na(how_likely_would_you_be_to_recommend_this_workshop), how_likely_would_you_be_to_recommend_this_workshop_2, how_likely_would_you_be_to_recommend_this_workshop)) %>%
+  dplyr::mutate(merged_likely_rec = 
+                  as.numeric(merged_likely_rec), 
                 promoter = dplyr::case_when(
-                  how_likely_would_you_be_to_recommend_this_workshop < 7 ~ "detractors", 
-                  how_likely_would_you_be_to_recommend_this_workshop == 7 ~ "passives", 
-                  how_likely_would_you_be_to_recommend_this_workshop == 8 ~ "passives", 
-                  how_likely_would_you_be_to_recommend_this_workshop > 8 ~ "promoters", 
+                  merged_likely_rec < 7 ~ "detractors", 
+                  merged_likely_rec == 7 ~ "passives", 
+                  merged_likely_rec == 8 ~ "passives", 
+                  merged_likely_rec > 8 ~ "promoters", 
                   TRUE ~ NA)) %>% 
   dplyr::count(promoter)
 
-#edit to include `how_likely_would_you_be_to_recommend_this_workshop_2`?
+#edited above to now include values from `how_likely_would_you_be_to_recommend_this_workshop_2`?
 
 promoter_sums <- promoters_categories$n
 names(promoter_sums) <- promoters_categories$promoter
