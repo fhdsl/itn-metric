@@ -19,8 +19,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library("ggplot2")
 library("magrittr")
+library("tidyverse")
 
-cbPalette <- c("#E69F00", "#56B4E9", "#CC79A7")
+cbPalette <- c("#E69F02", "#56B4E9", "#009E73") #Leadership, new to data science, software developers
 ```
 
 
@@ -232,7 +233,7 @@ itcr_course_data %>% janitor::clean_names() %>%
                       names_to = "metric_name", 
                       values_to = "value") %>% 
   dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
-  ggplot2::ggplot(ggplot2::aes(x = reorder(website, sort(target_audience, index.return = TRUE)$ix, FUN = identity), y = value, fill = target_audience)) +
+  ggplot2::ggplot(ggplot2::aes(x = reorder(website, sort(target_audience, index.return = TRUE)$ix), y = value, fill = target_audience)) +
   ggplot2::geom_bar(position = "dodge", stat = "identity") +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
