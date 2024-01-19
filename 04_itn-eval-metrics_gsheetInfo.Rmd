@@ -56,7 +56,33 @@ ggplot2::ggsave(file.path("plots", "itn_collaboration_types.png"), width = 7, he
 ### Only ITCR funded collaborations
 
 ```{r}
+collabs %>% dplyr::filter(ITN_ITCR_or_external == "ITCR") %>%
+  dplyr::count(Category) %>%
+  ggplot2::ggplot(ggplot2::aes(y =n, x=reorder(Category, -n), fill = Category )) +
+  ggplot2::geom_bar(position="dodge", stat = "identity") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), strip.text.x = ggplot2::element_text(size=6),
+                 legend.position = "none",
+                 plot.margin = unit(c(.75,.5,.5,.5), "cm")) +
+  ggplot2::xlab("") +
+  ggplot2::ggtitle("Collaborations with ITCR funded individuals only")
 
+ggplot2::ggsave(file.path("plots", "itn_collaboration_types_itcr_only.png"), width = 7, height = 5)
+```
+
+```{r}
+collab_itcr_df_to_plot <- data.frame("collabType" = c("Course paragraph authorship", "Course reviewer", "Course consultant/writer", "Manuscript author", "Workshop instructor", "Event coordination/hosting", "Trainee symposium planning", "OPEN talk", "Podcast interviewee", "Chapter author", "Affiliated course developer", "Interested in developing an affiliated course", "General consultant"), count = c(18, 5, 7, 21, 4, 4, 5, 15, 9, 1, 3, 7, 4))
+
+ggplot(collab_itcr_df_to_plot, aes(x=reorder(collabType, -count), y=count, fill = collabType)) +
+  geom_bar(position="dodge", stat = "identity") +
+  theme_minimal() +
+  theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), strip.text.x = ggplot2::element_text(size=6),
+                 legend.position = "none",
+                 plot.margin = unit(c(.75,.5,.5,.5), "cm")) +
+  xlab("") +
+  ggtitle("Collaborations with ITCR funded individuals only")
+
+ggsave(file.path("plots", "itn_collaboration_types_itcr_only_dfbased.png"), width=7, height=5)
 ```
 
 ## Loqui
