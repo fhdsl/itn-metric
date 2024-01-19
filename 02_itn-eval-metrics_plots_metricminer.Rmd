@@ -35,7 +35,9 @@ collabs <- readr::read_tsv(file.path("data", "collabs.tsv"))
 loqui_usage <- readr::read_tsv(file.path("data", "loqui_usage.tsv"))
 itcr_website_metrics <- readr::read_tsv(file.path("data", "itcr_website_metrics.tsv"))
 web_traffic_overtime <- readr::read_tsv(file.path("data", "web_traffic_overtime.tsv"))
+github_metrics <- readRDS(file.path("data", "itcr_gh_metrics.RDS"))
 ```
+
 ## Collaborations
 
 ### All Collaborations
@@ -188,6 +190,28 @@ unique_emails <-
          ) %>% data.frame() %>% filter(grepl("@", .)) #filter out entries that aren't an email address
 
 nrow(unique_emails)
+```
+
+## GitHub Activity 
+
+Summing it up: 
+```{r}
+apply(github_metrics[-c(1, 6)], 2, sum, na.rm = TRUE)
+```
+These metrics are only for the last two weeks
+```{r}
+github_metrics %>% 
+  tidyr::pivot_longer(!repo_name, 
+                      names_to = "metric", 
+                      values_to = "value") %>% 
+  dplyr::filter(metric == "unique_views") %>% 
+  ggplot2::ggplot(ggplot2::aes(x = reorder(repo_name, -value), y = value)) + 
+  ggplot2::geom_bar(stat = "identity") +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+  ggplot2::xlab("") +
+  ggplot2::geom_text(ggplot2::aes(label = value), size = 3, vjust = - 1)
+
 ```
 
 ## Unique visitors to websites
