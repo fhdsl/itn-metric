@@ -124,6 +124,14 @@ itcr_drive_id <- "https://drive.google.com/drive/folders/0AJb5Zemj0AAkUk9PVA"
 itcr_slido_data <- get_slido_files(itcr_drive_id)
 saveRDS(itcr_slido_data, file.path("data", "itcr_slido_data.RDS"))
 ```
+
+## Workshop attendee career stage
+
+```{r}
+career_stage_counts <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1-8vox2LzkVKzhmSFXCWjwt3jFtK-wHibRAq2fqbxEyo/edit#gid=8290691", range = "Workshop attendee type")
+readr::write_tsv(career_stage_counts, file.path("data", "career_stage_counts.tsv"))
+```
+
 ### Session Info 
 
 ```{r}

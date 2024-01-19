@@ -1,0 +1,250 @@
+---
+title: "ITN Eval Metrics"
+author: "Candace Savonen and Kate Isaac"
+date: "2024-01-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+## Collaborations
+
+### Load Collaborations Data
+
+```{r}
+collabs <- readr::read_tsv(file.path("data", "collabs.tsv"))
+```
+
+### All Collaborations
+
+```{r}
+nrow(collabs)
+
+collabs %>% dplyr::count(ITN_ITCR_or_external) %>% 
+  dplyr::mutate(perc = n/sum(n))
+```
+
+```{r}
+collabs <- collabs %>% tidyr::separate_rows("Category", sep = ", ", ) %>% 
+  dplyr::mutate(Category = trimws(Category)) %>% 
+  dplyr::filter(Category != "?")
+
+nrow(collabs)
+```
+
+```{r}
+collabs %>% dplyr::count(Category) %>% 
+  ggplot2::ggplot(ggplot2::aes(y = n, x = reorder(Category,-n), fill = Category)) +
+  ggplot2::geom_bar(position = "dodge", stat = "identity") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
+                 strip.text.x = ggplot2::element_text(size = 6),
+                 legend.position="none", 
+                 plot.margin = unit(c(.75,.5,.5,.5), "cm")) + 
+  ggplot2::xlab("")
+
+ggplot2::ggsave(file.path("plots", "itn_collaboration_types.png"), width = 7, height = 5)
+```
+
+### Only ITCR funded collaborations
+
+```{r}
+
+```
+
+## Loqui
+
+### Load Loqui Data
+
+```{r}
+loqui_usage <- readr::read_tsv(file.path("data", "loqui_usage.tsv"))
+```
+
+### Unique users of Loqui
+
+```{r}
+loqui_usage %>% count(email) %>% dplyr::pull(email) %>% length()
+```
+
+### Number of videos made with Loqui
+
+```{r, message = FALSE}
+loqui_usage %>% count(email) %>% dplyr::pull(n) %>% sum()
+```
+
+## Workshop Feedback Info & Data Visualizations
+
+### Load Workshop data
+
+```{r}
+itcr_slido_data <- readRDS(file.path("data", "itcr_slido_data.RDS"))
+```
+
+```{r}
+poll_data <- itcr_slido_data$`Polls-per-user` %>%
+  janitor::clean_names()
+```
+
+### How likely would you be to recommend this workshop?
+
+#### Percent of responses who responded with an 8 or higher when asked how likely they would be to recommend this workshop
+
+```{r}
+poll_data <- poll_data %>% 
+     mutate(merged_likely_rec = if_else(is.na(how_likely_would_you_be_to_recommend_this_workshop), how_likely_would_you_be_to_recommend_this_workshop_2, how_likely_would_you_be_to_recommend_this_workshop))
+
+scores_df <- table(as.numeric(poll_data$merged_likely_rec)) %>% 
+  data.frame() %>%
+  mutate(Var1 = as.numeric(as.character(Var1))) %>%
+  group_by(Var1 >= 8) %>%
+  summarize(n=sum(Freq)) %>% `colnames<-`(c("eightormore", "n"))
+
+scores_df[which(scores_df$eightormore == TRUE),"n"]/sum(scores_df$n)
+```
+
+#### Net promoter score
+
+```{r}
+
+promoters_categories <- poll_data %>% 
+  dplyr::mutate(merged_likely_rec = 
+                  as.numeric(merged_likely_rec), 
+                promoter = dplyr::case_when(
+                  merged_likely_rec < 7 ~ "detractors", 
+                  merged_likely_rec == 7 ~ "passives", 
+                  merged_likely_rec == 8 ~ "passives", 
+                  merged_likely_rec > 8 ~ "promoters", 
+                  TRUE ~ NA)) %>% 
+  dplyr::count(promoter)
+
+promoter_sums <- promoters_categories$n
+names(promoter_sums) <- promoters_categories$promoter
+sum(promoter_sums, na.rm = TRUE)
+
+# Net Promoter Score
+promoter_sums["promoters"]/sum(promoter_sums, na.rm = TRUE)- promoter_sums["detractors"]/sum(promoter_sums, na.rm = TRUE)
+```
+
+#### Bar graph
+
+```{r}
+as.numeric(poll_data$merged_likely_rec) %>%
+  ggplot2::qplot(geom = "bar") +
+  ggplot2::geom_bar(fill = "#CBC3E3") +
+  ggplot2::theme_classic() +
+  ggplot2::labs(title = "How likely would you be to recommend this workshop?", y="count", x="rating")
+  ggplot2::ggsave(file.path("plots", "itn_workshop_rec.png"), width = 5, height = 3)
+```
+
+
+### Workshop Relevance Feedback
+
+```{r}
+  poll_data_subset <- poll_data %>%
+    dplyr::filter(how_likely_are_you_to_use_what_you_learned_in_your_daily_work %in% c("Extremely likely", "Likely", "Not very likely", "Somewhat likely", "Very likely")) #this subset to only 72 rows instead of 119
+
+  poll_data_subset$how_likely_are_you_to_use_what_you_learned_in_your_daily_work <- factor(poll_data_subset$how_likely_are_you_to_use_what_you_learned_in_your_daily_work, levels = c("Not very likely",  "Somewhat likely", "Likely", "Very likely", "Extremely likely"))
+
+   ggplot2::ggplot(poll_data_subset, ggplot2::aes(x = how_likely_are_you_to_use_what_you_learned_in_your_daily_work)) +
+    ggplot2::geom_bar(stat = "count", fill = "#CBC3E3") +
+    ggplot2::theme_classic() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+    ggplot2::labs(title = "How likely are you to use what you learned in your daily work?") +
+    ggplot2::xlab("")
+   ggplot2::ggsave(file.path("plots", "itn_relevance.png"), width = 6, height = 4)
+```
+
+### Wordclouds for Qualitative Workshop Feedback
+
+```{r, results = 'hide'}
+ud_model <- udpipe::udpipe_download_model(language = "english")
+ud_model <- udpipe::udpipe_load_model(ud_model$file_model)
+```
+
+#### What did you like most about the workshop?
+
+```{r}
+results <- udpipe::udpipe_annotate(ud_model, x = poll_data$what_did_you_like_most_about_the_workshop) %>%
+  as.data.frame() %>%
+  dplyr::filter(upos %in% c("NOUN", "ADJ", "ADV")) %>%
+  dplyr::mutate(lemma= tolower(lemma)) %>%
+  dplyr::count(lemma)
+
+wordcloud::wordcloud(words = results$lemma, freq=results$n,colors = c("#98fb98", "#83D475", "#355E3B"),
+          min.freq = 3, scale = c(3, .4))
+```
+
+#### Please share any recommendations you have for improvements
+
+```{r}
+rec_results <- udpipe::udpipe_annotate(ud_model, x = poll_data$please_share_any_recommendations_you_have_for_improvements) %>%
+  as.data.frame() %>%
+  dplyr::filter(upos %in% c("NOUN", "ADJ", "ADV")) %>%
+  dplyr::mutate(lemma= tolower(lemma)) %>%
+  dplyr::count(lemma)
+
+wordcloud::wordcloud(words = rec_results$lemma, freq=rec_results$n,colors = c("#98fb98", "#83D475", "#355E3B"),
+          min.freq = 3, scale = c(4, .4))
+```
+
+
+### Estimate/tally number of workshop attendees per workshop
+```{r}
+#if user ID is NA, filter out
+#if all values are NA, filter out (never answered a question)
+# filter out Candace and Greg
+
+filtered_poll_data <- poll_data %>%
+  filter(!is.na(user_id)) %>% #header lines
+  filter(!(user_name == "Greg C")) %>% #workshop leader
+  filter(!(user_name == "Candace")) %>% #workshop leader
+  select(!(starts_with("practice"))) #practice column, not actual feedback
+
+filtered_poll_data <- filtered_poll_data[-1,] #remove first row cause that's still Greg according to `what_is_your_name_and_what_institution_are_you_from`
+table(filtered_poll_data$event_name)
+
+```
+
+Note that the above tally is looking before I've filtered out rows where there are no responses.
+
+### Get estimate of total number of workshop attendees, not unique
+```{r}
+filtered_poll_data <- filtered_poll_data[,which(colnames(filtered_poll_data) == "what_do_you_hope_to_learn_at_this_workshop"):ncol(filtered_poll_data)]  #look only at columns that are feedback
+nrow(filtered_poll_data) - sum(rowSums(is.na(filtered_poll_data)) == ncol(filtered_poll_data)) #number responses total - number responses where there is no feedback
+
+```
+
+### Get number of unique workshop attendees
+```{r}  
+unique_emails <-
+  unique(c(poll_data$please_submit_your_email_so_we_can_log_your_attendance,
+           poll_data$whats_your_email,
+           poll_data$what_is_your_email)
+         ) %>% data.frame() %>% filter(grepl("@", .)) #filter out entries that aren't an email address
+
+nrow(unique_emails)
+```
+
+### Get career stage of workshop registrants
+```{r}
+career_stage_counts <- readr::read_tsv(file.path("data", "career_stage_counts.tsv"))
+career_stage_counts_subset <- career_stage_counts[c(1:5), c(1:11)]
+df_to_plot <- data.frame(Stage = colnames(career_stage_counts_subset[2:10]), count = unlist(career_stage_counts_subset[5, c(2:10)]))
+df_to_plot <- data.frame(Stage = colnames(career_stage_counts_subset[2:10]), count = unlist(career_stage_counts_subset[5, c(2:10)]), "Trainee" = c("yes","yes","no","no","no","yes","no","yes","yes"))
+ggplot(df_to_plot, aes(x=reorder(Stage, -count), y=count, fill=Trainee)) +
+  geom_bar(stat = "identity") +
+  xlab("Career stage") +
+  ylab("Number of registrees") +
+  theme_bw() + 
+  theme(panel.background = element_blank(), panel.grid = element_blank(), axis.text.x = element_text(angle = 45, hjust=1)) +
+  scale_fill_manual(values = c("#440154", "#28ae80"))
+ggsave(file.path("plots", "itn_workshop_registration_career_stage.png"), width = 5, height = 5)
+
+```
