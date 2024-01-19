@@ -148,7 +148,6 @@ repos <- c(
   "jhudsl/OTTR_Template_Website",
   "jhudsl/ITCR_Tables",
   "jhudsl/ITN_Platforms",
-  "FredHutch/loqui-vc",
   "fhdsl/Choosing_Genomics_Tools",
   "jhudsl/Informatics_Research_Leadership",
   "jhudsl/Documentation_and_Usability",
@@ -160,13 +159,13 @@ repos <- c(
   "fhdsl/Ethical_Data_Handling_for_Cancer_Research",
   "fhdsl/AI_for_Decision_Makers",
   "fhdsl/AI_for_Efficient_Programming",
-  "fhdsl/NIH_Data_Sharing",
-  "FredHutch/loqui"
+  "fhdsl/NIH_Data_Sharing"
+  #"FredHutch/loqui"
 )
 
 gh_metrics <- get_repos_metrics(repo_names = repos)
 
-gh_metrics
+saveRDS(gh_metrics, file.path("data", "itcr_gh_metrics.RDS"))
 ```
 
 ### Session Info 
