@@ -1,0 +1,37 @@
+---
+title: "lastplot"
+author: "Carrie"
+date: "2024-01-20"
+output: html_document
+---
+
+```{r}
+library(tidyverse) #009e73, #56b4e9, #e69f00
+library(magrittr)
+library(forcats)
+course <-read_csv("data/course_engagement.csv")
+course_clean <-course %>% pivot_longer(cols = contains("count"), names_to = "modality", values_to = "number_of_learners") %>%
+  mutate(course_name = factor(course_name)) %>%
+  separate(modality, sep = "_", into = c("modality", "meh")) %>% 
+  mutate(modality = factor(modality, levels = c("website", "leanpub", "coursera")))%>%
+  mutate(course_order = case_when(course_type == "Leadership" ~ 1,
+                                course_type == "New to data" ~ 2,
+                                course_type == "Software developers" ~ 3)) %>%
+
+  rename("Target Audience" =  course_type)
+
+        
+
+cbPalette <- c("#E69F02", "#56B4E9", "#009E73") #Leadership, new to data science, software developers
+
+plot <-course_clean  %>% 
+  ggplot(aes(x = fct_reorder(course_name, course_order),
+             y = number_of_learners, fill = `Target Audience`,)) +
+              geom_col() + 
+              facet_wrap(~modality, nrow = 3)  + 
+              scale_fill_manual(values=cbPalette) + 
+              theme_classic() + 
+              theme(axis.text.x = element_text(angle = 45, hjust=1)) + 
+              labs(x = NULL, y = "Number of Learners")
+plot
+```

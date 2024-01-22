@@ -19,15 +19,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library("ggplot2")
 library("magrittr")
+library("tidyverse")
+library("ggrepel")
+library("patchwork")
 
-cbPalette <- c("#E69F00", "#56B4E9", "#CC79A7")
+cbPalette <- c("#E69F02", "#56B4E9", "#009E73") #Leadership, new to data science, software developers
 ```
 
 
 ## Load data
 ```{r}
-itcr_course_data <- readr::read_tsv(file.path("data", "itcr_course_metrics.tsv"))
-ga_metrics <- readRDS(file.path("data","itcr_ga_metric_data.RDS"))
 ga_dims <- readRDS(file.path("data","itcr_ga_dims_data.RDS"))
 ga_link_clicks <- readRDS(file.path("data","itcr_ga_link_click_data.RDS"))
 itcr_slido_data <- readRDS(file.path("data", "itcr_slido_data.RDS"))
@@ -40,42 +41,20 @@ github_metrics <- readRDS(file.path("data", "itcr_gh_metrics.RDS"))
 
 ## Collaborations
 
-### All Collaborations
-
-```{r}
-nrow(collabs)
-
-collabs %>% dplyr::count(ITN_ITCR_or_external) %>% 
-  dplyr::mutate(perc = n/sum(n))
 ```
 
-```{r}
-collabs <- collabs %>% tidyr::separate_rows("Category", sep = ", ", ) %>% 
-  dplyr::mutate(Category = trimws(Category)) %>% 
-  dplyr::filter(Category != "?")
+## Web traffic
 
-nrow(collabs)
-```
+### Load Web Traffic data
 
 ```{r}
-collabs %>% dplyr::count(Category) %>% 
-  ggplot2::ggplot(ggplot2::aes(y = n, x = reorder(Category,-n), fill = Category)) +
-  ggplot2::geom_bar(position = "dodge", stat = "identity") +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
-                 strip.text.x = ggplot2::element_text(size = 6),
-                 legend.position="none", 
-                 plot.margin = unit(c(.75,.5,.5,.5), "cm")) + 
-  ggplot2::xlab("")
-
-ggplot2::ggsave(file.path("plots", "itn_collaboration_types.png"), width = 7, height = 5)
+itcr_course_data <- readr::read_tsv(file.path("data", "itcr_course_metrics.tsv"))
+ga_metrics <- readRDS(file.path("data","itcr_ga_metric_data.RDS"))
+itcr_website_metrics <- readr::read_tsv(file.path("data", "itcr_website_metrics.tsv"))
+web_traffic_overtime <- readr::read_tsv(file.path("data", "web_traffic_overtime.tsv"))
 ```
 
-### Only ITCR funded collaborations
-
-## Loqui
-
-### Unique users of Loqui
+### Unique visitors to websites
 
 ```{r}
 loqui_usage %>% count(email) %>% dplyr::pull(email) %>% length()
@@ -192,28 +171,6 @@ unique_emails <-
 nrow(unique_emails)
 ```
 
-## GitHub Activity 
-
-Summing it up: 
-```{r}
-apply(github_metrics[-c(1, 6)], 2, sum, na.rm = TRUE)
-```
-These metrics are only for the last two weeks
-```{r}
-github_metrics %>% 
-  tidyr::pivot_longer(!repo_name, 
-                      names_to = "metric", 
-                      values_to = "value") %>% 
-  dplyr::filter(metric == "unique_views") %>% 
-  ggplot2::ggplot(ggplot2::aes(x = reorder(repo_name, -value), y = value)) + 
-  ggplot2::geom_bar(stat = "identity") +
-  ggplot2::theme_classic() +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
-  ggplot2::xlab("") +
-  ggplot2::geom_text(ggplot2::aes(label = value), size = 3, vjust = - 1)
-
-```
-
 ## Unique visitors to websites
 
 ```{r}
@@ -228,7 +185,7 @@ ggplot2::ggplot(itcr_course_data, ggplot2::aes(x = reorder(website, -totalUsers)
   ggplot2::ggsave(file.path("plots", "itn_website_visits.png"), width = 4, height = 3) 
 ```
 
-## Table of user engagement
+### Table of user engagement
 
 ```{r}
 user_totals <- ga_metrics %>% 
@@ -250,25 +207,28 @@ user_engagement
 
 
 ```{r}
-itcr_course_data %>% janitor::clean_names() %>% 
+itcr_course_data %>% janitor::clean_names() %>%
   dplyr::select(website, screen_page_views_per_user, average_session_duration, event_count_per_user, engagement_rate, target_audience) %>%
   tidyr::pivot_longer(!c(website, target_audience), 
                       names_to = "metric_name", 
                       values_to = "value") %>% 
   dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
-  ggplot2::ggplot(ggplot2::aes(x = reorder(website, sort(target_audience, index.return = TRUE)$ix, FUN = identity), y = value, fill = target_audience)) +
+  ggplot2::ggplot(ggplot2::aes(x = website, y = value, fill = target_audience)) +
   ggplot2::geom_bar(position = "dodge", stat = "identity") +
   ggplot2::theme_minimal() +
+  ggplot2::facet_wrap(~metric_name, scales = "free_y") + 
+  ggplot2::scale_fill_manual(values=cbPalette) +
+  ggplot2::scale_x_discrete(limits = c("Leadership in Cancer Informatics", "NIH Data Sharing", "Ethical Data Handling", "Overleaf and Latex for Scientific Articles", "AI for Decision Makers",
+                                                    "Reproducibility in Cancer Informatics", "Choosing Genomics Tools", "Computing for Cancer Informatics",
+                                                    "Documentation and Usability", "Advanced Reproducibility", "AI for Efficient Programming", "GitHub Automation for Scientists")) +
   ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
                  strip.text.x = ggplot2::element_text(size = 8), 
-                 plot.margin = unit(c(1.5,.5,.5,.5), "cm")) +
-  ggplot2::facet_wrap(~metric_name, scales = "free_y") + 
-  ggplot2::scale_fill_manual(values=cbPalette)
+                 plot.margin = unit(c(1.5,.5,.5,1.5), "cm"))
 
-ggplot2::ggsave(file.path("plots", "itn_engagement_stats.png"), width = 8, height = 6)
+ggplot2::ggsave(file.path("plots", "itn_engagement_stats_reordered.png"), width = 8, height = 6)
 ```
 
-## ITN Course and Website Traffic Overtime 
+### ITN Course and Website Traffic Overtime 
 
 ```{r}
 traffic_plot <- web_traffic_overtime %>% 
@@ -360,7 +320,7 @@ long_df %>%
 
 ```{r}
 #publishing dates for each course on the website to add vertical dashes lines to the following plot
-publishdates <- itcr_course_data[!(itcr_course_data$website %in% c("ITN Website", "OTTR website", "metricminer.org")),c("website", "website_launch")]
+publishdates <- itcr_course_data[!(itcr_course_data$website %in% c("ITN Website", "OTTR website", "metricminer.org")),c("website", "website_launch", "coursera_launch", "leanpub_launch")]
 publishdates <- publishdates[order(publishdates$website),]
 ```
 
@@ -378,9 +338,86 @@ ggplot2::ggplot(ggplot2::aes(y = n, x = month_year, fill = target_audience)) +
                  strip.text.x = ggplot2::element_text(size = 8)) + 
   ggplot2::facet_wrap(~website) + 
   ggplot2::scale_fill_manual(values=cbPalette) +
-  ggplot2::geom_vline(data = publishdates, aes(xintercept = website_launch), linetype='dashed')
+  ggplot2::geom_vline(data = publishdates, aes(xintercept = website_launch), linetype='dashed') +
+  ggplot2::geom_vline(data = publishdates, aes(xintercept = coursera_launch), linetype='dashed', colour = 'darkgrey') +
+  ggplot2::geom_vline(data = publishdates, aes(xintercept = leanpub_launch), linetype='dashed', colour = 'chocolate4')
 
 ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), width = 10, height = 5)
+```
+
+```{r}
+get_plot <- function(course_name, web_traffic_overtime, publishdates, titleOI, useylab = FALSE, usexlab = FALSE, xlimMinVal = min(web_traffic_overtime$month_year), xlimMaxVal = max(web_traffic_overtime$month_year), ylimVal = 400){
+  publishdatesSubset <- publishdates[which(publishdates$website == course_name),]
+  plotOI <- web_traffic_overtime %>% 
+    dplyr::group_by(website, month_year, target_audience) %>%
+    dplyr::count() %>% #count number of times it is there so it's all the data?
+    dplyr::filter(website == course_name) %>%
+    ggplot2::ggplot(ggplot2::aes(y = n, x = month_year, fill = target_audience)) +
+    ggplot2::geom_bar(stat = "identity") +
+    ggplot2::scale_x_date(date_labels = "%b %Y") +
+    ggplot2::xlab("") +
+    ggplot2::ylab("") +
+    ggplot2::labs(title = titleOI) +
+    ggplot2::xlim(xlimMinVal, xlimMaxVal) +
+    ggplot2::ylim(0, ylimVal) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1),
+                   strip.text.x = ggplot2::element_text(size=7), axis.title=element_text(size=9), legend.position = "bottom") +
+    ggplot2::scale_fill_manual(values=c("Leadership" = "#E69F02", "New to data" = "#56B4E9", "Software developers" = "#009E73")) +
+    geom_vline(data = publishdatesSubset, aes(xintercept = website_launch), colour = 'black', linetype='dashed') +
+    geom_vline(data = publishdatesSubset, aes(xintercept = coursera_launch), colour='plum4', linetype='dotted', linewidth=1.25) +
+    geom_vline(data = publishdatesSubset, aes(xintercept = leanpub_launch), colour='chocolate4', linetype='dashed')
+    
+  if(useylab){
+    plotOI <- plotOI + ggplot2::ylab("Unique ITN Website Learners Overtime")
+  }
+  
+  if(usexlab){
+    plotOI <- plotOI + ggplot2::xlab("month_year")
+  }
+  
+  return (plotOI)
+}
+
+p00 <- get_plot("Leadership in Cancer Informatics", web_traffic_overtime, publishdates, "Leadership in Cancer\nInformatics") #Leadership in Cancer Informatics
+ 
+p01 <- get_plot("NIH Data Sharing", web_traffic_overtime, publishdates, "NIH Data Sharing") #NIH Data Sharing
+
+p02 <- get_plot("Ethical Data Handling", web_traffic_overtime, publishdates, "Ethical Data Handling") #Ethical Data Handling
+
+p03 <- get_plot("Overleaf and Latex for Scientific Articles", web_traffic_overtime, publishdates, "Overleaf and Latex for\nScientific Articles") #Overleaf and Latex for Scientific Articles
+
+p04 <- get_plot("AI for Decision Makers", web_traffic_overtime, publishdates, "AI for Decision Makers") #AI for Decision Makers
+
+p10 <- get_plot("Reproducibility in Cancer Informatics", web_traffic_overtime, publishdates, "Reproducibility in Cancer\nInformatics", useylab = TRUE) #Reproducibility in Cancer Informatics
+
+p11 <- get_plot("Choosing Genomics Tools", web_traffic_overtime, publishdates, "Choosing Genomics\nTools") #Choosing Genomics Tools
+
+p12 <- get_plot("Computing for Cancer Informatics", web_traffic_overtime, publishdates, "Computing for Cancer\nInformatics") #Computing for Cancer Informatics
+
+p20 <- get_plot("Documentation and Usability", web_traffic_overtime, publishdates, "Documentation and\nUsability") #Documentation and Usability
+
+p21 <- get_plot("Advanced Reproducibility", web_traffic_overtime, publishdates, "Advanced\nReproducibility") #Advanced Reproducibility
+
+p22 <- get_plot("AI for Efficient Programming", web_traffic_overtime, publishdates, "AI for Efficient\nProgramming", usexlab = TRUE) #AI for Efficient Programming
+
+p23 <- get_plot("GitHub Automation for Scientists", web_traffic_overtime, publishdates, "GitHub Automation for\nScientists") #GitHub Automation for Scientists
+```
+
+
+
+
+```{r}
+layout <- 'ABCDE
+           FGH##
+           IJKL#'
+overall_plot <- wrap_plots(A=p00, B=p01, C=p02, D=p03, E=p04, F=p10, G=p11, H=p12, I=p20, J=p21, K=p22, L=p23, design=layout) +plot_layout(ncol = 5, nrow =3, axes="collect", axis_titles = "collect", guides="collect") & theme(legend.position = 'bottom')
+
+overall_plot
+```
+
+```{r}
+ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course_reordered.png"), plot = overall_plot, width = 14, height = 7)
 ```
 
 ### Number of learners by how long the course has been out
@@ -395,17 +432,21 @@ itcr_course_data %>%
 ```
 
 ```{r}
+itcr_course_data$webAndEnrollmentTotals <- itcr_course_data %>%
+  select(website_count, coursera_count, leanpub_count) %>% rowSums(na.rm = TRUE)
+
 itcr_course_data %>% 
   dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
   dplyr::mutate(duration = today() - website_launch) %>%
-  ggplot2::ggplot(ggplot2::aes(x = duration, y = totalUsers, color = target_audience)) + 
+  ggplot2::ggplot(ggplot2::aes(x = duration, y = webAndEnrollmentTotals, color = target_audience)) + 
   ggplot2::geom_point() + 
-  ggplot2::theme_minimal() + 
+  ggplot2::theme(panel.grid = element_line("black", linewidth = 0.25), panel.background = element_blank(), panel.border = element_rect("black", fill=NA, linewidth=0.5)) +
   ggplot2::xlab("How long the course has been out") +
+  ggplot2::ylab("Bookdown Views + Coursera & Leanpub Enrollments") +
   ggplot2::scale_color_manual(values=cbPalette) + 
-  ggplot2::geom_text(ggplot2::aes(x = duration, y = totalUsers, label = website), size = 3, vjust = - 1, na.rm = TRUE)
+  ggrepel::geom_text_repel(ggplot2::aes(x = duration, y = webAndEnrollmentTotals, label = website), size = 4, vjust = - 1, na.rm = TRUE)
 
-ggplot2::ggsave(file.path("plots", "itn_website_traffic_by_how_long_the_course_has_been_published.png"), width = 10, height = 5)
+ggplot2::ggsave(file.path("plots", "itn_website_traffic_by_how_long_the_course_has_been_published.png"), width = 12, height = 8)
 ```
 ### Software engagement 
 
@@ -425,7 +466,7 @@ ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) +
 ggplot2::ggsave(file.path("plots", "itn_software_website_traffic.png"), width = 10, height = 5)
 ```
 
-## Coursera
+#### Coursera
 
 ```{r}
 ggplot2::ggplot(itcr_course_data %>% dplyr::filter(coursera_count > 0), ggplot2::aes(x = reorder(website, -coursera_count), y = coursera_count, fill = target_audience)) +
@@ -441,7 +482,7 @@ ggplot2::ggplot(itcr_course_data %>% dplyr::filter(coursera_count > 0), ggplot2:
   ggplot2::ggsave(file.path("plots", "itn_coursera_enrollments.png"), width = 4, height = 2)
 ```
 
-## Leanpub
+#### Leanpub
 
 ```{r}
 ggplot2::ggplot(itcr_course_data %>% dplyr::filter(leanpub_count > 0) , ggplot2::aes(x = reorder(website, -leanpub_count), y = leanpub_count, fill = target_audience)) +
