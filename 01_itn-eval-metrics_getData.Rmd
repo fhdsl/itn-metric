@@ -1,0 +1,139 @@
+---
+title: "ITN Eval Metrics"
+author: "Candace Savonen"
+date: "2024-01-05"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 2
+    toc_float: true
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Set Up
+
+```{r}
+dir.create("data", showWarnings = FALSE)
+dir.create("plots", showWarnings = FALSE)
+
+set.seed(1234)
+
+devtools::load_all("~/tool_repos/metricminer/")
+library("magrittr")
+
+source(file.path("local_auth_2.R"))
+auth_from_secret("calendly", token = Sys.getenv("METRICMINER_CALENDLY"))
+
+auth_from_secret("google",
+                 refresh_token = Sys.getenv("METRICMINER_GOOGLE_REFRESH"),
+                 access_token = Sys.getenv("METRICMINER_GOOGLE_ACCESS"),
+                 cache = TRUE)
+
+auth_from_secret("github", token = Sys.getenv("METRICMINER_GITHUB_PAT"))
+
+ga_accounts <- get_ga_user()
+calendly_account <- get_calendly_user()
+```
+
+## Collect online course data
+
+```{r}
+
+fhdsl_stats_list <- get_all_ga_metrics(account_id = ga_accounts$id[1])
+itcr_stats_list <- get_all_ga_metrics(account_id = ga_accounts$id[2])
+  
+# There's some google analytics that aren't ITCR courses
+not_itcr <- c("hutchdatasci", "whoiswho", "MMDS", "FH Cluster 101", "AnVIL_Researcher_Journey")
+
+# Set up each data frame 
+ga_metrics <- dplyr::bind_rows(fhdsl_stats_list$metrics ,itcr_stats_list$metrics) %>%
+  dplyr::filter(
+    !(website %in%not_itcr)
+    )
+saveRDS(ga_metrics, file.path("data","itcr_ga_metric_data.RDS"))
+  
+ga_dims <- dplyr::bind_rows(fhdsl_stats_list$dimensions, itcr_stats_list$dimensions) %>%
+  dplyr::filter(
+    !(website %in% not_itcr)
+    )
+saveRDS(ga_dims, file.path("data","itcr_ga_dims_data.RDS"))
+  
+ga_link_clicks <- dplyr::bind_rows(fhdsl_stats_list$link_clicks,itcr_stats_list$link_clicks) %>%
+  dplyr::filter(
+    !(website %in% not_itcr)
+    )
+saveRDS(ga_link_clicks, file.path("data","itcr_ga_link_click_data.RDS"))
+  
+manual_course_info <- googlesheets4::read_sheet(
+  "https://docs.google.com/spreadsheets/d/1-8vox2LzkVKzhmSFXCWjwt3jFtK-wHibRAq2fqbxEyo/edit#gid=1550012125", sheet = "Course_data", 
+  col_types = "ccDDDciii") %>% 
+  dplyr::mutate_if(is.numeric.Date, lubridate::ymd)
+
+# Join this all together
+itcr_course_data <- ga_metrics %>% 
+  dplyr::left_join(manual_course_info) %>% 
+  dplyr::mutate(website = dplyr::case_when(
+    website == "Advanced Reproducibility in Cancer Informatics" ~ "Advanced Reproducibility",
+                                           TRUE ~ website))
+
+web_traffic_overtime <- ga_dims %>% 
+  dplyr::mutate(date = lubridate::ymd(paste0(year, "-", month, "-", day))) %>% 
+  dplyr::mutate(month_year = lubridate::ym(paste0(year, "-", month))) %>% 
+  dplyr::mutate(web_yn = dplyr::case_when(
+    website == "ITN Website" ~ "ITN Website", 
+    website != "ITN Website" ~ "ITN Online Course Website")) %>% 
+  dplyr::left_join(manual_course_info) %>%
+      dplyr::mutate(website = dplyr::case_when(
+    website == "Advanced Reproducibility in Cancer Informatics" ~ "Advanced Reproducibility",
+                                           TRUE ~ website))
+
+# Save these to TSVs
+readr::write_tsv(itcr_course_data, file.path("data", "itcr_course_metrics.tsv"))
+readr::write_tsv(web_traffic_overtime, file.path("data", "web_traffic_overtime.tsv"))
+```
+
+## Collaboration Info
+
+```{r}
+collabs <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1-8vox2LzkVKzhmSFXCWjwt3jFtK-wHibRAq2fqbxEyo/edit#gid=0")
+
+# Save this to a TSV
+readr::write_tsv(collabs, file.path("data", "collabs.tsv"))
+
+```
+
+## Collect Loqui Video Creation User data
+
+```{r}
+loqui_usage <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1G_HTU-bv2k5txExP8EH3ScUfGqtW1P3syThD84Z-g9k/edit#gid=0")
+
+# Save this to a TSV
+readr::write_tsv(loqui_usage, file.path("data", "loqui_usage.tsv"))
+
+```
+
+## Collect Workshop Feedback Info
+
+```{r}
+itcr_drive_id <- "https://drive.google.com/drive/folders/0AJb5Zemj0AAkUk9PVA"
+itcr_slido_data <- get_slido_files(itcr_drive_id)
+saveRDS(itcr_slido_data, file.path("data", "itcr_slido_data.RDS"))
+```
+
+## Workshop attendee career stage
+
+```{r}
+career_stage_counts <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1-8vox2LzkVKzhmSFXCWjwt3jFtK-wHibRAq2fqbxEyo/edit#gid=8290691", range = "Workshop attendee type")
+readr::write_tsv(career_stage_counts, file.path("data", "career_stage_counts.tsv"))
+```
+
+### Session Info 
+
+```{r}
+sessionInfo()
+```

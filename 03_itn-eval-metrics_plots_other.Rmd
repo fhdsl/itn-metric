@@ -1,0 +1,129 @@
+---
+title: "ITN Eval Metrics"
+author: "Candace Savonen"
+date: "2024-01-05"
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 2
+    toc_float: true
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Set up
+
+```{r}
+library("ggplot2")
+library("cranlogs")
+library("tidyverse")
+```
+
+
+## Get OTTR courses
+
+```{r}
+sync_yamls <- c(
+  "https://raw.githubusercontent.com/jhudsl/OTTR_Template/main/.github/sync.yml", 
+  "https://raw.githubusercontent.com/C-MOOR/C-MOOR_Template//main/.github/sync.yml", 
+  "https://raw.githubusercontent.com/jhudsl/AnVIL_Template/main/.github/sync.yml",
+  "https://raw.githubusercontent.com/datatrail-jhu/DataTrail_Template/main/.github/sync.yml"
+)
+
+extract_repos <- function(yaml) {
+  content <- yaml::read_yaml(yaml) 
+  repos <- unlist(purrr::map(content$group, "repos"))
+  repos <- unlist(strsplit(repos, "\n"))
+  return(repos)
+}
+
+all_ottr_repos <- unlist(lapply(sync_yamls, extract_repos))
+
+ottr_df <- data.frame(repo_name = all_ottr_repos) %>%
+  tidyr::separate(repo_name, into = c("organization", "repo"), sep = "\\/", remove = FALSE) %>% 
+  dplyr::mutate(template = dplyr::case_when(
+    stringr::str_detect(repo, "template|Template") ~ "template", 
+    TRUE ~ "course"
+  )) %>% 
+  dplyr::distinct()
+
+ottr_df %>% dplyr::count(organization)
+
+ottr_df %>% 
+  dplyr::filter(template == "course") %>% 
+  dplyr::count()
+```
+
+
+## OPEN attendance
+
+```{r}
+open_agenda <- readLines("ITCR OPEN Group Agenda.txt")
+
+dates <- grep("20", open_agenda, value = TRUE)
+dates <- gsub(" Meeting| meeting", "", dates)
+month <- stringr::word(dates, sep = " ")
+year <- stringr::word(dates, sep = " ", start = 2)
+
+names <- grep("20", open_agenda)
+attendance <- abs(names[1:length(names)] - c(names[2:length(names)], length(open_agenda)))
+
+
+open_attendance <- data.frame(
+  date = lubridate::ym(paste(year,"-", month)),
+  attendance)
+
+ggplot2::ggplot(open_attendance, ggplot2::aes(x = date, y = attendance)) + 
+  ggplot2::geom_bar(stat = "identity", fill = "lightgreen") +
+  ggplot2::theme_classic() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
+  ggplot2::xlab("") +
+  ggplot2::geom_text(ggplot2::aes(label = attendance), size = 3, vjust = - 1) 
+  #ggplot2::ggsave(file.path("plots", "open_attendance.png"), width = 4, height = 3)
+  
+```
+
+
+### CRAN downloads
+
+```{r}
+download_stats <- cranlogs::cran_downloads(packages = c("ottrpal", "conrad", "ari", "text2speech"), from = "2017-08-31", to = "last-day") #first version of ari published on 2017-08-31
+
+download_stats %>% dplyr::summarize(download_total = sum(count))
+
+download_stats %>% dplyr::group_by(package) %>%
+   dplyr::summarize(download_total = sum(count))
+
+download_stats_to_plot <- download_stats %>% separate(date, into=c("year", "month name", "day"), sep = "-") %>% unite("Month", c("year", "month name"), sep='-', remove=TRUE) %>%  #cran_downloads returns the daily downloads, and so doing some prep work to turn that into monthly downloads
+  group_by(Month, package) %>% summarise(monthly_downloads = sum(count)) %>% #summarize monthly downloads by package
+  filter(monthly_downloads > 0) #drop the 0's 
+
+xlabel_view <- c(rep(c("black", "transparent", "transparent", "transparent"), 41), "black", "transparent") #166 rows
+#cc <- rev(c("#fde725", "#addc30", "#5ec962", "#28ae80", "#21918c", "#2c728e", "#3b528b", "#472d7b", "#440154"))
+viridis_cc <- c("#440154", "#2c728e", "#28ae80", "#addc30")
+
+ggplot(download_stats_to_plot, aes(Month, monthly_downloads, group=package, color = package)) + 
+  geom_line() + 
+  geom_point() +
+  scale_colour_manual(values=viridis_cc) +
+  theme(panel.background = element_blank(), panel.grid = element_blank()) +
+  geom_vline(aes(xintercept = "2019-05"), linetype='dashed', color = '#addc30') + #text2speech published date
+  geom_vline(aes(xintercept="2022-02"), linetype='dashed', color = '#28ae80') + #ottrpal published date 
+  geom_vline(aes(xintercept="2023-07"), linetype='dashed', color = '#2c728e') + #conrad published date
+  theme(axis.text.x = element_text(angle = 90)) +
+  theme(axis.text.x=element_text(color= xlabel_view)) + #clean up x-axis labels
+  ylab("Monthly Downloads")
+  
+#ggplot2::ggsave(file.path("plots", "itn_software_cran_downloads_ki.png"), width=10, height=5)
+
+```
+
+### Session Info 
+
+```{r}
+sessionInfo()
+```
