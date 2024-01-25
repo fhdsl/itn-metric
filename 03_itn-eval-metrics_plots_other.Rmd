@@ -77,13 +77,15 @@ open_attendance <- data.frame(
   date = lubridate::ym(paste(year,"-", month)),
   attendance)
 
-ggplot2::ggplot(open_attendance, ggplot2::aes(x = date, y = attendance)) + 
-  ggplot2::geom_bar(stat = "identity", fill = "lightgreen") +
-  ggplot2::theme_classic() +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
-  ggplot2::xlab("") +
-  ggplot2::geom_text(ggplot2::aes(label = attendance), size = 3, vjust = - 1) 
-  #ggplot2::ggsave(file.path("plots", "open_attendance.png"), width = 4, height = 3)
+ggplot(open_attendance, aes(x = date, y = attendance)) + 
+  geom_bar(stat = "identity", fill = "lightgreen") +
+  geom_text(aes(label = attendance), size = 3, vjust = - 1) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  labs(x = NULL, y = "Attendance")
+  
+  
+  #ggsave(file.path("plots", "open_attendance.png"), width = 4, height = 3)
   
 ```
 
@@ -116,14 +118,10 @@ ggplot(download_stats_to_plot, aes(Month, monthly_downloads, group=package, colo
   geom_vline(aes(xintercept="2023-07"), linetype='dashed', color = '#2c728e') + #conrad published date
   theme(axis.text.x = element_text(angle = 90)) +
   theme(axis.text.x=element_text(color= xlabel_view)) + #clean up x-axis labels
-  ylab("Monthly Downloads")
+  labs(x = NULL,
+       y = "Monthly Downloads",
+       color = "R Packages")
   
-#ggplot2::ggsave(file.path("plots", "itn_software_cran_downloads_ki.png"), width=10, height=5)
+#ggsave(file.path("plots", "itn_software_cran_downloads_ki.png"), width=10, height=5)
 
-```
-
-### Session Info 
-
-```{r}
-sessionInfo()
 ```
