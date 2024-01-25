@@ -23,7 +23,7 @@ library("tidyverse")
 library("ggrepel")
 library("patchwork")
 
-cbPalette <- c("#E69F02", "#56B4E9", "#009E73") #Leadership, new to data science, software developers
+cbPalette <- c("#E69F02", "#56B4E9", "#009E73", "#008080") # Everyone, Leadership, new to data science, software developers, 
 ```
 
 
@@ -31,7 +31,6 @@ cbPalette <- c("#E69F02", "#56B4E9", "#009E73") #Leadership, new to data science
 ```{r}
 ga_dims <- readRDS(file.path("data","itcr_ga_dims_data.RDS"))
 ga_link_clicks <- readRDS(file.path("data","itcr_ga_link_click_data.RDS"))
-
 ```
 
 ## Web traffic
@@ -39,24 +38,30 @@ ga_link_clicks <- readRDS(file.path("data","itcr_ga_link_click_data.RDS"))
 ### Load Web Traffic data
 
 ```{r}
-itcr_course_data <- readr::read_tsv(file.path("data", "itcr_course_metrics.tsv"))
+itcr_course_data <- read_tsv(file.path("data", "itcr_course_metrics.tsv")) %>% 
+  mutate(target_audience = replace_na(target_audience, "Everyone"))
+
 ga_metrics <- readRDS(file.path("data","itcr_ga_metric_data.RDS"))
-itcr_website_metrics <- readr::read_tsv(file.path("data", "itcr_website_metrics.tsv"))
-web_traffic_overtime <- readr::read_tsv(file.path("data", "web_traffic_overtime.tsv"))
+itcr_website_metrics <- read_tsv(file.path("data", "itcr_website_metrics.tsv"))
+web_traffic_overtime <- read_tsv(file.path("data", "web_traffic_overtime.tsv"))
 ```
 
 ### Unique visitors to websites
 
+READY
 ```{r}
-ggplot2::ggplot(itcr_course_data, ggplot2::aes(x = reorder(website, -totalUsers), y = totalUsers, fill = target_audience)) +
-  ggplot2::geom_bar(stat = "identity") +
-  ggplot2::theme_classic() +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
-  ggplot2::xlab("") +
-  ggplot2::geom_text(ggplot2::aes(label = totalUsers), size = 3, vjust = - 1) +
-  ggplot2::ylim(c(0, 6000)) + 
-  ggplot2::scale_fill_manual(values=cbPalette)
-  ggplot2::ggsave(file.path("plots", "itn_website_visits.png"), width = 4, height = 3) 
+ggplot(itcr_course_data, aes(x = reorder(website, -totalUsers), 
+                             y = totalUsers, 
+                             fill = target_audience)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = totalUsers), size = 3, vjust = - 1) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  labs(x = NULL,
+       y = "Total # of Visitors",
+       fill = "Target Audience") +
+  ylim(c(0, 6000)) + 
+  scale_fill_manual(values=cbPalette)
 ```
 
 ### Table of user engagement
@@ -64,7 +69,7 @@ ggplot2::ggplot(itcr_course_data, ggplot2::aes(x = reorder(website, -totalUsers)
 ```{r}
 user_totals <- ga_metrics %>% 
   janitor::clean_names() %>% 
-  dplyr::select(website, active_users, average_session_duration) %>% 
+  select(website, active_users, average_session_duration) %>% 
   knitr::kable(digits=2, long_table = TRUE,padding = 2) # %>%
 
 user_totals
@@ -73,67 +78,77 @@ user_totals
 ```{r}
 user_engagement <- ga_metrics %>% 
   janitor::clean_names() %>% 
-  dplyr::select(website, screen_page_views_per_user, sessions, screen_page_views, engagement_rate) %>% 
+  select(website, screen_page_views_per_user, sessions, screen_page_views, engagement_rate) %>% 
   knitr::kable(digits=2, long_table = TRUE, padding = 2) # %>%
 
 user_engagement
 ```
 
 
+READY
 ```{r}
 itcr_course_data %>% janitor::clean_names() %>%
-  dplyr::select(website, screen_page_views_per_user, average_session_duration, event_count_per_user, engagement_rate, target_audience) %>%
+  select(website, screen_page_views_per_user, average_session_duration, event_count_per_user, engagement_rate, target_audience) %>%
   tidyr::pivot_longer(!c(website, target_audience), 
                       names_to = "metric_name", 
                       values_to = "value") %>% 
-  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
-  ggplot2::ggplot(ggplot2::aes(x = website, y = value, fill = target_audience)) +
-  ggplot2::geom_bar(position = "dodge", stat = "identity") +
-  ggplot2::theme_minimal() +
-  ggplot2::facet_wrap(~metric_name, scales = "free_y") + 
-  ggplot2::scale_fill_manual(values=cbPalette) +
-  ggplot2::scale_x_discrete(limits = c("Leadership in Cancer Informatics", "NIH Data Sharing", "Ethical Data Handling", "Overleaf and Latex for Scientific Articles", "AI for Decision Makers",
-                                                    "Reproducibility in Cancer Informatics", "Choosing Genomics Tools", "Computing for Cancer Informatics",
-                                                    "Documentation and Usability", "Advanced Reproducibility", "AI for Efficient Programming", "GitHub Automation for Scientists")) +
-  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
-                 strip.text.x = ggplot2::element_text(size = 8), 
-                 plot.margin = unit(c(1.5,.5,.5,1.5), "cm"))
+  filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  ggplot(aes(x = website, y = value, fill = target_audience)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  theme_minimal() +
+  labs(x = NULL,
+       y = NULL,
+       fill = "Target Audience") +
+  facet_wrap(~metric_name, scales = "free_y",
+             labeller = labeller(metric_name = c(screen_page_views_per_user = "Screen Page Views per User",
+                                                 average_session_duration = "Average Session Duration",
+                                                 event_count_per_user = "Event Count per User",
+                                                 engagement_rate = "Engagement Rate"))) + 
+  scale_fill_manual(values=cbPalette) +
+  scale_x_discrete(limits = c("Leadership in Cancer Informatics", "NIH Data Sharing", "Ethical Data Handling", "Overleaf and Latex for Scientific Articles", "AI for Decision Makers",
+                              "Reproducibility in Cancer Informatics", "Choosing Genomics Tools", "Computing for Cancer Informatics",
+                              "Documentation and Usability", "Advanced Reproducibility", "AI for Efficient Programming", "GitHub Automation for Scientists")) +
+  theme(axis.text.x=element_text(angle=60, hjust=1), 
+        strip.text.x = element_text(size = 8), 
+        plot.margin = unit(c(1.5,.5,.5,1.5), "cm"))
 
-ggplot2::ggsave(file.path("plots", "itn_engagement_stats_reordered.png"), width = 8, height = 6)
+ggsave(file.path("plots", "itn_engagement_stats_reordered.png"), width = 8, height = 6)
 ```
 
 ### ITN Course and Website Traffic Overtime 
 
 ```{r}
-traffic_plot <- web_traffic_overtime %>% 
-  dplyr::filter(website %in% c("ITN Website", "OTTR website", "metricminer.org")) %>%
-  dplyr::group_by(month_year) %>% 
-  dplyr::count() %>% 
-  ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
-  ggplot2::geom_bar(stat = "identity", fill = "pink") + 
-  ggplot2::scale_x_date(date_labels = "%b %Y") + 
-  ggplot2::ylab("Unique ITN Online Course Visitors") +
-  ggplot2::xlab("") +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1)) 
+# TODO: 'web_traffic_overtime' not found
 
-ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot.png"), width = 4, height = 3.5)
-  
+traffic_plot <- web_traffic_overtime %>% 
+  filter(website %in% c("ITN Website", "OTTR website", "metricminer.org")) %>%
+  group_by(month_year) %>% 
+  count() %>% 
+  ggplot(aes(y = n, x = month_year)) + 
+  geom_bar(stat = "identity", fill = "pink") + 
+  scale_x_date(date_labels = "%b %Y") + 
+  ylab("Unique ITN Online Course Visitors") +
+  xlab("") +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) 
+
+ggsave(file.path("plots", "itn_course_traffic_plot.png"), width = 4, height = 3.5)
+
 traffic_plot
 ```
 
 
 ```{r}
-long_df <- itcr_course_data %>% dplyr::select(c("website", 
-                                     "totalUsers",
-                                     "coursera_count", 
-                                     "leanpub_count", 
-                                     "target_audience")) %>%
+long_df <- itcr_course_data %>% select(c("website", 
+                                         "totalUsers",
+                                         "coursera_count", 
+                                         "leanpub_count", 
+                                         "target_audience")) %>%
   tidyr::pivot_longer(!c(website, target_audience),
-                                         names_to = "modality", 
-                                         values_to = "learner_count") %>%
-  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
-  dplyr::mutate(modality = dplyr::case_when(
+                      names_to = "modality", 
+                      values_to = "learner_count") %>%
+  filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  mutate(modality = case_when(
     modality == "leanpub_count" ~ "Total Leanpub Enrollments", 
     modality == "coursera_count" ~ "Total Coursera Enrollments",
     modality == "totalUsers" ~ "Website Learners", 
@@ -144,49 +159,53 @@ long_df <- itcr_course_data %>% dplyr::select(c("website",
 
 ### Total learners from each modality
 
+READY
 ```{r}
 long_df %>% 
-  dplyr::group_by(modality, target_audience) %>% 
-  dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
-ggplot2::ggplot(ggplot2::aes(x = reorder(modality, -total_learners), y = total_learners, fill = target_audience)) +
-  ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
-  ggplot2::theme_classic() +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
-  ggplot2::xlab("") +
-  ggplot2::ylab("Visitors/Enrollees") +
-  ggplot2::geom_text(ggplot2::aes(label = total_learners), size = 3, vjust = - 1, na.rm = TRUE) + 
-  ggplot2::ylim(c(0, 4200)) + 
-  ggplot2::facet_wrap(~target_audience) + 
-  ggplot2::scale_fill_manual(values=cbPalette)
+  group_by(modality, target_audience) %>% 
+  summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
+  ggplot(aes(x = reorder(modality, -total_learners), y = total_learners, fill = target_audience)) +
+  geom_bar(stat = "identity", na.rm = TRUE) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  labs(x = NULL,
+       y = "Visitors/Enrollees",
+       fill = "Target Audience") +
+  geom_text(aes(label = total_learners), size = 3, vjust = - 1, na.rm = TRUE) + 
+  ylim(c(0, 4200)) + 
+  facet_wrap(~target_audience) + 
+  scale_fill_manual(values=cbPalette)
 
-ggplot2::ggsave(file.path("plots", "itn_total_enrollments.png"), width = 8, height = 3)
+ggsave(file.path("plots", "itn_total_enrollments.png"), width = 8, height = 3)
 ```
 
 ### Total learners by course
 
+READY
 ```{r}  
 long_df %>% 
-  dplyr::group_by(website, target_audience) %>% 
-  dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
-ggplot2::ggplot(ggplot2::aes(y = total_learners, x = reorder(website, -total_learners), fill = target_audience)) + 
-  ggplot2::geom_bar(stat = "identity") + 
-  ggplot2::ylab("Total learners by course") +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
-                 strip.text.x = ggplot2::element_text(size = 8)) + 
-  ggplot2::geom_text(ggplot2::aes(label = total_learners), size = 3, vjust = - 1, na.rm = TRUE) +
-  ggplot2::ylim(c(0, 1800)) + 
-  ggplot2::xlab("") + 
-  ggplot2::scale_fill_manual(values=cbPalette)
+  group_by(website, target_audience) %>% 
+  summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
+  ggplot(aes(y = total_learners, x = reorder(website, -total_learners), fill = target_audience)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = NULL, 
+       y = "Total Learners by Course",
+       fill = "Target Audience") +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=60, hjust=1), 
+        strip.text.x = element_text(size = 8)) + 
+  geom_text(aes(label = total_learners), size = 3, vjust = - 1, na.rm = TRUE) +
+  ylim(c(0, 1800)) + 
+  scale_fill_manual(values=cbPalette)
 
-ggplot2::ggsave(file.path("plots", "itn_total_learners_by_course.png"), width = 10, height = 5)
+ggsave(file.path("plots", "itn_total_learners_by_course.png"), width = 10, height = 5)
 ```
 
 ```{r}
 long_df %>% 
-  dplyr::group_by(website, target_audience) %>%
-  dplyr::summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
-  dplyr::arrange(-total_learners) %>% 
+  group_by(website, target_audience) %>%
+  summarize(total_learners = sum(learner_count, na.rm = TRUE)) %>%
+  arrange(-total_learners) %>% 
   knitr::kable()
 ```
 
@@ -199,62 +218,63 @@ publishdates <- publishdates[order(publishdates$website),]
 ```
 
 ```{r}
+# TODO: 'web_traffic_overtime' not found
 web_traffic_overtime %>%
-  dplyr::group_by(website, month_year, target_audience) %>% 
-  dplyr::count() %>% 
-  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>% 
-ggplot2::ggplot(ggplot2::aes(y = n, x = month_year, fill = target_audience)) + 
-  ggplot2::geom_bar(stat = "identity") + 
-  ggplot2::scale_x_date(date_labels = "%b %Y") + 
-  ggplot2::ylab("Unique ITN Website Learners Overtime") +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
-                 strip.text.x = ggplot2::element_text(size = 8)) + 
-  ggplot2::facet_wrap(~website) + 
-  ggplot2::scale_fill_manual(values=cbPalette) +
-  ggplot2::geom_vline(data = publishdates, aes(xintercept = website_launch), linetype='dashed') +
-  ggplot2::geom_vline(data = publishdates, aes(xintercept = coursera_launch), linetype='dashed', colour = 'darkgrey') +
-  ggplot2::geom_vline(data = publishdates, aes(xintercept = leanpub_launch), linetype='dashed', colour = 'chocolate4')
+  group_by(website, month_year, target_audience) %>% 
+  count() %>% 
+  filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>% 
+  ggplot(aes(y = n, x = month_year, fill = target_audience)) + 
+  geom_bar(stat = "identity") + 
+  scale_x_date(date_labels = "%b %Y") + 
+  ylab("Unique ITN Website Learners Overtime") +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=60, hjust=1), 
+        strip.text.x = element_text(size = 8)) + 
+  facet_wrap(~website) + 
+  scale_fill_manual(values=cbPalette) +
+  geom_vline(data = publishdates, aes(xintercept = website_launch), linetype='dashed') +
+  geom_vline(data = publishdates, aes(xintercept = coursera_launch), linetype='dashed', colour = 'darkgrey') +
+  geom_vline(data = publishdates, aes(xintercept = leanpub_launch), linetype='dashed', colour = 'chocolate4')
 
-ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), width = 10, height = 5)
+ggsave(file.path("plots", "itn_course_traffic_plot_by_course.png"), width = 10, height = 5)
 ```
 
 ```{r}
 get_plot <- function(course_name, web_traffic_overtime, publishdates, titleOI, useylab = FALSE, usexlab = FALSE, xlimMinVal = min(web_traffic_overtime$month_year), xlimMaxVal = max(web_traffic_overtime$month_year), ylimVal = 400){
   publishdatesSubset <- publishdates[which(publishdates$website == course_name),]
   plotOI <- web_traffic_overtime %>% 
-    dplyr::group_by(website, month_year, target_audience) %>%
-    dplyr::count() %>% #count number of times it is there so it's all the data?
-    dplyr::filter(website == course_name) %>%
-    ggplot2::ggplot(ggplot2::aes(y = n, x = month_year, fill = target_audience)) +
-    ggplot2::geom_bar(stat = "identity") +
-    ggplot2::scale_x_date(date_labels = "%b %Y") +
-    ggplot2::xlab("") +
-    ggplot2::ylab("") +
-    ggplot2::labs(title = titleOI) +
-    ggplot2::xlim(xlimMinVal, xlimMaxVal) +
-    ggplot2::ylim(0, ylimVal) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1),
-                   strip.text.x = ggplot2::element_text(size=7), axis.title=element_text(size=9), legend.position = "bottom") +
-    ggplot2::scale_fill_manual(values=c("Leadership" = "#E69F02", "New to data" = "#56B4E9", "Software developers" = "#009E73")) +
+    group_by(website, month_year, target_audience) %>%
+    count() %>% #count number of times it is there so it's all the data?
+    filter(website == course_name) %>%
+    ggplot(aes(y = n, x = month_year, fill = target_audience)) +
+    geom_bar(stat = "identity") +
+    scale_x_date(date_labels = "%b %Y") +
+    xlab("") +
+    ylab("") +
+    labs(title = titleOI) +
+    xlim(xlimMinVal, xlimMaxVal) +
+    ylim(0, ylimVal) +
+    theme_minimal() +
+    theme(axis.text.x=element_text(angle=60, hjust=1),
+          strip.text.x = element_text(size=7), axis.title=element_text(size=9), legend.position = "bottom") +
+    scale_fill_manual(values=c("Leadership" = "#E69F02", "New to data" = "#56B4E9", "Software developers" = "#009E73")) +
     geom_vline(data = publishdatesSubset, aes(xintercept = website_launch), colour = 'black', linetype='dashed') +
     geom_vline(data = publishdatesSubset, aes(xintercept = coursera_launch), colour='plum4', linetype='dotted', linewidth=1.25) +
     geom_vline(data = publishdatesSubset, aes(xintercept = leanpub_launch), colour='chocolate4', linetype='dashed')
-    
+  
   if(useylab){
-    plotOI <- plotOI + ggplot2::ylab("Unique ITN Website Learners Overtime")
+    plotOI <- plotOI + ylab("Unique ITN Website Learners Overtime")
   }
   
   if(usexlab){
-    plotOI <- plotOI + ggplot2::xlab("month_year")
+    plotOI <- plotOI + xlab("month_year")
   }
   
   return (plotOI)
 }
 
 p00 <- get_plot("Leadership in Cancer Informatics", web_traffic_overtime, publishdates, "Leadership in Cancer\nInformatics") #Leadership in Cancer Informatics
- 
+
 p01 <- get_plot("NIH Data Sharing", web_traffic_overtime, publishdates, "NIH Data Sharing") #NIH Data Sharing
 
 p02 <- get_plot("Ethical Data Handling", web_traffic_overtime, publishdates, "Ethical Data Handling") #Ethical Data Handling
@@ -291,18 +311,18 @@ overall_plot
 ```
 
 ```{r}
-ggplot2::ggsave(file.path("plots", "itn_course_traffic_plot_by_course_reordered.png"), plot = overall_plot, width = 14, height = 7)
+ggsave(file.path("plots", "itn_course_traffic_plot_by_course_reordered.png"), plot = overall_plot, width = 14, height = 7)
 ```
 
 ### Number of learners by how long the course has been out
 
 ```{r}
 itcr_course_data %>% 
-  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
-  ggplot2::ggplot(ggplot2::aes(x = coursera_launch, y = coursera_count, color = target_audience)) + 
-  ggplot2::geom_point() + 
-  ggplot2::theme_minimal() + 
-  ggplot2::scale_color_manual(values=cbPalette)
+  filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  ggplot(aes(x = coursera_launch, y = coursera_count, color = target_audience)) + 
+  geom_point() + 
+  theme_minimal() + 
+  scale_color_manual(values=cbPalette)
 ```
 
 ```{r}
@@ -310,66 +330,70 @@ itcr_course_data$webAndEnrollmentTotals <- itcr_course_data %>%
   select(website_count, coursera_count, leanpub_count) %>% rowSums(na.rm = TRUE)
 
 itcr_course_data %>% 
-  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
-  dplyr::mutate(duration = today() - website_launch) %>%
-  ggplot2::ggplot(ggplot2::aes(x = duration, y = webAndEnrollmentTotals, color = target_audience)) + 
-  ggplot2::geom_point() + 
-  ggplot2::theme(panel.grid = element_line("black", linewidth = 0.25), panel.background = element_blank(), panel.border = element_rect("black", fill=NA, linewidth=0.5)) +
-  ggplot2::xlab("How long the course has been out") +
-  ggplot2::ylab("Bookdown Views + Coursera & Leanpub Enrollments") +
-  ggplot2::scale_color_manual(values=cbPalette) + 
-  ggrepel::geom_text_repel(ggplot2::aes(x = duration, y = webAndEnrollmentTotals, label = website), size = 4, vjust = - 1, na.rm = TRUE)
+  filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  mutate(duration = today() - website_launch) %>%
+  ggplot(aes(x = duration, y = webAndEnrollmentTotals, color = target_audience)) + 
+  geom_point() + 
+  theme(panel.grid = element_line("black", linewidth = 0.25), panel.background = element_blank(), panel.border = element_rect("black", fill=NA, linewidth=0.5)) +
+  xlab("How long the course has been out") +
+  ylab("Bookdown Views + Coursera & Leanpub Enrollments") +
+  scale_color_manual(values=cbPalette) + 
+  ggrepel::geom_text_repel(aes(x = duration, y = webAndEnrollmentTotals, label = website), size = 4, vjust = - 1, na.rm = TRUE)
 
-ggplot2::ggsave(file.path("plots", "itn_website_traffic_by_how_long_the_course_has_been_published.png"), width = 12, height = 8)
+ggsave(file.path("plots", "itn_website_traffic_by_how_long_the_course_has_been_published.png"), width = 12, height = 8)
 ```
 ### Software engagement 
 
 ```{r}
 web_traffic_overtime %>% 
-  dplyr::group_by(website, month_year) %>% 
-  dplyr::count() %>% 
-  dplyr::filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
-ggplot2::ggplot(ggplot2::aes(y = n, x = month_year)) + 
-  ggplot2::geom_bar(stat = "identity", fill = "pink") + 
-  ggplot2::scale_x_date(date_labels = "%b %Y") + 
-  ggplot2::ylab("Unique ITN software website visitors") +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(axis.text.x=ggplot2::element_text(angle=60, hjust=1), 
-                 strip.text.x = ggplot2::element_text(size = 8)) 
+  group_by(website, month_year) %>% 
+  count() %>% 
+  filter(!(website %in% c("ITN Website", "OTTR website", "metricminer.org"))) %>%
+  ggplot(aes(y = n, x = month_year)) + 
+  geom_bar(stat = "identity", fill = "pink") + 
+  scale_x_date(date_labels = "%b %Y") + 
+  ylab("Unique ITN software website visitors") +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=60, hjust=1), 
+        strip.text.x = element_text(size = 8)) 
 
-ggplot2::ggsave(file.path("plots", "itn_software_website_traffic.png"), width = 10, height = 5)
+ggsave(file.path("plots", "itn_software_website_traffic.png"), width = 10, height = 5)
 ```
 
 #### Coursera
 
+READY
 ```{r}
-ggplot2::ggplot(itcr_course_data %>% dplyr::filter(coursera_count > 0), ggplot2::aes(x = reorder(website, -coursera_count), y = coursera_count, fill = target_audience)) +
-  ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
-  ggplot2::theme_classic() +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
-  ggplot2::xlab("") +
-  ggplot2::ylab("Coursera enrollments") +
-  ggplot2::geom_text(ggplot2::aes(label = coursera_count), size = 3, vjust = - 1, na.rm = TRUE) +
-  ggplot2::ylim(c(0, 1200)) + 
-  ggplot2::scale_fill_manual(values=cbPalette)
+ggplot(itcr_course_data %>% filter(coursera_count > 0), aes(x = reorder(website, -coursera_count), y = coursera_count, fill = target_audience)) +
+  geom_bar(stat = "identity", na.rm = TRUE) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  labs(x = NULL,
+       y = "Coursera enrollments",
+       fill = "Target Audience") +
+  geom_text(aes(label = coursera_count), size = 3, vjust = - 1, na.rm = TRUE) +
+  ylim(c(0, 1200)) + 
+  scale_fill_manual(values=cbPalette)
 
-  ggplot2::ggsave(file.path("plots", "itn_coursera_enrollments.png"), width = 4, height = 2)
+ggsave(file.path("plots", "itn_coursera_enrollments.png"), width = 4, height = 2)
 ```
 
 #### Leanpub
 
+READY
 ```{r}
-ggplot2::ggplot(itcr_course_data %>% dplyr::filter(leanpub_count > 0) , ggplot2::aes(x = reorder(website, -leanpub_count), y = leanpub_count, fill = target_audience)) +
-  ggplot2::geom_bar(stat = "identity", na.rm = TRUE) +
-  ggplot2::theme_classic() +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust=1)) +
-  ggplot2::xlab("") +
-  ggplot2::ylab("Leanpub enrollments") +
-  ggplot2::geom_text(ggplot2::aes(label = leanpub_count), size = 3, vjust = - 1, na.rm = TRUE) +
-  ggplot2::ylim(c(0, 40)) + 
-  ggplot2::scale_fill_manual(values=cbPalette)
+ggplot(itcr_course_data %>% filter(leanpub_count > 0) , aes(x = reorder(website, -leanpub_count), y = leanpub_count, fill = target_audience)) +
+  geom_bar(stat = "identity", na.rm = TRUE) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  labs(x = NULL,
+       y = "Leanpub enrollments",
+       fill = "Target Audience") +
+  geom_text(aes(label = leanpub_count), size = 3, vjust = - 1, na.rm = TRUE) +
+  ylim(c(0, 40)) + 
+  scale_fill_manual(values=cbPalette)
 
-ggplot2::ggsave(file.path("plots", "itn_leanpub_enrollments.png"), width = 4, height = 2)
+ggsave(file.path("plots", "itn_leanpub_enrollments.png"), width = 4, height = 2)
 ```
 
 ### Session Info 
