@@ -335,8 +335,9 @@ itcr_course_data %>%
   ggplot(aes(x = duration, y = webAndEnrollmentTotals, color = target_audience)) + 
   geom_point() + 
   theme(panel.grid = element_line("black", linewidth = 0.25), panel.background = element_blank(), panel.border = element_rect("black", fill=NA, linewidth=0.5)) +
-  xlab("How long the course has been out") +
-  ylab("Bookdown Views + Coursera & Leanpub Enrollments") +
+  labs(x = "How long the course has been out",
+       y = "Bookdown Views + Coursera & Leanpub Enrollments",
+       color = "Target Audience") +
   scale_color_manual(values=cbPalette) + 
   ggrepel::geom_text_repel(aes(x = duration, y = webAndEnrollmentTotals, label = website), size = 4, vjust = - 1, na.rm = TRUE)
 
