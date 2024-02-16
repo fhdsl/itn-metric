@@ -59,7 +59,9 @@ ggplot(itcr_course_data, aes(x = reorder(website, -totalUsers),
   theme(axis.text.x = element_text(angle = 45, hjust=1)) +
   labs(x = NULL,
        y = "Total # of Visitors",
-       fill = "Target Audience") +
+       fill = "Target Audience",
+       title = "Visitor Distribution across Educational Resources",
+       caption = "The graph displays the number of visitors for different educational platforms, categorized by the intended audience: everyone, leadership, newcomers to data, and software developers.") +
   ylim(c(0, 6000)) + 
   scale_fill_manual(values=cbPalette)
 ```
