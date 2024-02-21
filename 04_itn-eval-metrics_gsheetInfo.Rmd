@@ -71,7 +71,7 @@ collabs %>% filter(ITN_ITCR_or_external == "ITCR") %>%
   ylab("N") +
   ggtitle("Collaborations with ITCR funded individuals only")
 
-ggsave(file.path("plots", "itn_collaboration_types_itcr_only.png"), width = 7, height = 5)
+# ggsave(file.path("plots", "itn_collaboration_types_itcr_only.png"), width = 7, height = 5)
 ```
 
 ```{r}
@@ -265,16 +265,20 @@ nrow(unique_emails)
 ### Get career stage of workshop registrants
 ```{r}
 career_stage_counts <- readr::read_tsv(file.path("data", "career_stage_counts.tsv"))
+
 career_stage_counts_subset <- career_stage_counts[c(1:5), c(1:11)]
-df_to_plot <- data.frame(Stage = colnames(career_stage_counts_subset[2:10]), count = unlist(career_stage_counts_subset[5, c(2:10)]))
-df_to_plot <- data.frame(Stage = colnames(career_stage_counts_subset[2:10]), count = unlist(career_stage_counts_subset[5, c(2:10)]), "Trainee" = c("yes","yes","no","no","no","yes","no","yes","yes"))
-ggplot(df_to_plot, aes(x=reorder(Stage, -count), y=count, fill=Trainee)) +
+
+career_stage_counts_final <- data.frame(Stage = colnames(career_stage_counts_subset[2:10]), count = unlist(career_stage_counts_subset[5, c(2:10)]), "Trainee" = c("yes","yes","no","no","no","yes","no","yes","yes"))
+
+
+ggplot(career_stage_counts_final, aes(x=reorder(Stage, -count), y=count, fill=Trainee)) +
   geom_bar(stat = "identity") +
   xlab("Career stage") +
   ylab("Number of registrees") +
   theme_bw() + 
   theme(panel.background = element_blank(), panel.grid = element_blank(), axis.text.x = element_text(angle = 45, hjust=1)) +
   scale_fill_manual(values = c("#440154", "#28ae80"))
-ggsave(file.path("plots", "itn_workshop_registration_career_stage.png"), width = 5, height = 5)
+
+# ggsave(file.path("plots", "itn_workshop_registration_career_stage.png"), width = 5, height = 5)
 
 ```
