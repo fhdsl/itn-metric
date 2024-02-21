@@ -57,6 +57,7 @@ ottr_df %>%
   dplyr::filter(template == "course") %>% 
   dplyr::count()
 ```
+
 ```{r}
 ottr_contributors <- ottr_df %>% dplyr::select("organization", "repo")
 
