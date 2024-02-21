@@ -67,8 +67,8 @@ number_contributors <-
     purrr:::map(results, ~.x$login)
   })
 
-# number of "OTTR users"
-length(unique(unlist(number_contributors)))
+# number of "OTTR users" but "actions user" and "jhudsl-robot" don't count so subtract 2
+length(unique(unlist(number_contributors))) - 2
 ```
 
 ## OPEN attendance
