@@ -58,6 +58,18 @@ ottr_df %>%
   dplyr::count()
 ```
 
+```{r}
+ottr_contributors <- ottr_df %>% dplyr::select("organization", "repo")
+
+number_contributors <- 
+  purrr::pmap(ottr_contributors, function(organization, repo) {
+    results <- gh::gh("GET https://api.github.com/repos/{owner}/{repo}/contributors", owner = organization, repo = repo, .limit = Inf)
+    purrr:::map(results, ~.x$login)
+  })
+
+# number of "OTTR users"
+length(unique(unlist(number_contributors)))
+```
 
 ## OPEN attendance
 
