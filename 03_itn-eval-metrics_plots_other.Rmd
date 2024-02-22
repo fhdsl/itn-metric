@@ -18,9 +18,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Set up
 
 ```{r}
-library("ggplot2")
-library("cranlogs")
-library("tidyverse")
+library(cranlogs)
+library(tidyverse)
 ```
 
 
@@ -72,7 +71,7 @@ year <- stringr::word(dates, sep = " ", start = 2)
 names <- grep("20", open_agenda)
 attendance <- abs(names[1:length(names)] - c(names[2:length(names)], length(open_agenda)))
 
-
+# 'open_attendance' is saved as a csv file: 'open_attendance.csv'
 open_attendance <- data.frame(
   date = lubridate::ym(paste(year,"-", month)),
   attendance)
@@ -82,27 +81,41 @@ ggplot(open_attendance, aes(x = date, y = attendance)) +
   geom_text(aes(label = attendance), size = 3, vjust = - 1) +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 45, hjust=1)) +
-  labs(x = NULL, y = "Attendance")
-  
-  
-  #ggsave(file.path("plots", "open_attendance.png"), width = 4, height = 3)
-  
+  labs(x = NULL, 
+       y = "Attendance",
+       title = "OPEN Meeting Attendance by Month")
+
+
+#ggsave(file.path("plots", "open_attendance.png"), width = 4, height = 3)
+
 ```
 
 
 ### CRAN downloads
 
 ```{r}
-download_stats <- cranlogs::cran_downloads(packages = c("ottrpal", "conrad", "ari", "text2speech"), from = "2017-08-31", to = "last-day") #first version of ari published on 2017-08-31
+download_stats <- cranlogs::cran_downloads(packages = c("ottrpal", "conrad", "ari", "text2speech"), 
+                                           # first version of ari published on 2017-08-31 
+                                           from = "2017-08-31",
+                                           to = "last-day") 
 
 download_stats %>% dplyr::summarize(download_total = sum(count))
 
 download_stats %>% dplyr::group_by(package) %>%
-   dplyr::summarize(download_total = sum(count))
+  dplyr::summarize(download_total = sum(count))
 
-download_stats_to_plot <- download_stats %>% separate(date, into=c("year", "month name", "day"), sep = "-") %>% unite("Month", c("year", "month name"), sep='-', remove=TRUE) %>%  #cran_downloads returns the daily downloads, and so doing some prep work to turn that into monthly downloads
-  group_by(Month, package) %>% summarise(monthly_downloads = sum(count)) %>% #summarize monthly downloads by package
-  filter(monthly_downloads > 0) #drop the 0's 
+# Saved as `download_stats.csv`
+download_stats_to_plot <- download_stats %>% 
+  separate(date, into=c("year", "month name", "day"), sep = "-") %>% 
+  unite("Month", c("year", "month name"), sep='-', remove=TRUE) %>%  
+  # cran_downloads returns the daily downloads,
+  # Some prep work to turn that into monthly downloads
+  group_by(Month, package) %>% 
+  # summarize monthly downloads by package
+  summarise(monthly_downloads = sum(count)) %>%
+  # drop the 0's 
+  filter(monthly_downloads > 0) %>% 
+  ungroup()
 
 xlabel_view <- c(rep(c("black", "transparent", "transparent", "transparent"), 41), "black", "transparent") #166 rows
 #cc <- rev(c("#fde725", "#addc30", "#5ec962", "#28ae80", "#21918c", "#2c728e", "#3b528b", "#472d7b", "#440154"))
@@ -121,7 +134,7 @@ ggplot(download_stats_to_plot, aes(Month, monthly_downloads, group=package, colo
   labs(x = NULL,
        y = "Monthly Downloads",
        color = "R Packages")
-  
+
 #ggsave(file.path("plots", "itn_software_cran_downloads_ki.png"), width=10, height=5)
 
 ```
