@@ -5,8 +5,8 @@ library(purrr)
 # Function that creates OAuth client for Google APIs
 google_client <- function() {
   httr2::oauth_client(
-    id = "[Your Client ID]",
-    secret = "[Your Client secret]",
+    id = "YOUR_ID",
+    secret = "YOUR_SECRET",
     token_url = "https://oauth2.googleapis.com/token",
     name = "itn-metric-google-docs"
   )

@@ -100,7 +100,7 @@ readr::write_tsv(web_traffic_overtime, file.path("data", "web_traffic_overtime.t
 ## Collaboration Info
 
 ```{r}
-collabs <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1-8vox2LzkVKzhmSFXCWjwt3jFtK-wHibRAq2fqbxEyo/edit#gid=0")
+collabs <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/1-8vox2LzkVKzhmSFXCWjwt3jFtK-wHibRAq2fqbxEyo/edit?usp=sharing")
 
 # Save this to a TSV
 readr::write_tsv(collabs, file.path("data", "collabs.tsv"))
